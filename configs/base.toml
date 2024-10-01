@@ -1,0 +1,46 @@
+out_folder = "outputs/"
+name = "test"
+
+[diffbem]
+cluster_size = 128
+radius_factor = 1.5
+freq_bands = [1000]
+n_freqs = 1
+approx_ACA_tol = 1e-5
+Q_ACA_tol = 1e-5
+solver_tol = 1e-5
+listener_ds = 5
+recompute_matrices = false
+
+[dimensions]
+esize = 0.01
+w = 0.6
+b = 0.6
+h = 0.15
+
+[image]
+# 0.01 ~ 128, 0.02 ~ 64
+hfield_res = 128
+edge_border = 2
+cam_rad = 1
+
+[optimization]
+tgt_fname = "test-data/images/cat.png"
+iters = 200
+save_every = 50
+lr = 1e-3
+init_val = 0.0
+# acoustics
+ac_wt = 0
+# texture clip loss
+cl_wt = 3
+# smoothness
+sm_wt = 5
+# sum of squared heights
+mh_wt = 0.5
+# negative relu (penalize negative heights)
+ng_wt = 0.1
+
+# renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
+vw_wts = [3, 1, 1, 1, 1]
+# vw_wts = [0, 0, 0, 0, 0]
