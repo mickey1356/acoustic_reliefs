@@ -43,3 +43,6 @@ def save_images(fname, imgs, dpi=200, fig_axis=0, show_ax="off"):
         a.axis(show_ax)
     fig.savefig(fname)
 
+def read_token(tkn_file):
+    with open(tkn_file, "r") as f:
+        return f.readline().strip()

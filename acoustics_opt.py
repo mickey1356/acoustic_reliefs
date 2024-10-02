@@ -7,10 +7,10 @@ import torch
 import torch.optim
 
 import bemlib3d as bl3d
-import pyoptim.helpers as H
-import pyoptim.mesher as mesher
-import pyoptim.cliploss as cl
-import pyoptim.diffmesh as dm
+from pyoptim import losses
+from pyoptim import mesher
+from pyoptim import helpers as H
+from pyoptim import diffmesh as dm
 
 # assume tex and uvs are 0,0 = top-left
 def eval_uv(tex, uvs):
@@ -53,10 +53,7 @@ def acoustic_gradient(tex, diffbem, diff_uvs, device="cuda"):
 
 def texture_cliploss(tex_torch, tgt_tensor, loss_fn) -> torch.Tensor:
     img = torch.stack([tex_torch, tex_torch, tex_torch], dim=0).unsqueeze(0)
-    loss = 0
-    loss_dict = loss_fn(img, tgt_tensor)
-    for k in loss_dict:
-        loss += loss_dict[k]
+    loss = loss_fn(img, tgt_tensor)
     return loss
 
 def smoothness(tex_torch):
@@ -141,7 +138,7 @@ def optim_proc(config):
     Ps, Es = diffbem.precompute(Ps, Es, diff_pts_idx)
 
     # initialize diffmesh (for mitsuba renderer)
-    diffmesh = dm.DiffMesh(Ps, Es, tgt_fname)
+    diffmesh = dm.ImageDiffMesh(Ps, Es, tgt_fname)
 
     # we want to parameterize the variables using a heightfield "texture"
     # uv coords are set to be 0,0 at the btm-left (corresponding to -w/2, h, b/2)
@@ -157,7 +154,8 @@ def optim_proc(config):
     tgt_tensor = torch.from_numpy(tgt_img).permute(2, 0, 1).unsqueeze(0).cuda()
 
     # create clip loss model
-    semantic_loss = cl.CLIPConvLoss(torch.device("cuda"), clip_conv_layer=3)
+    # semantic_loss = losses.ImgImgCLIPLoss()
+    semantic_loss = losses.ImgImgLPIPSLoss()
 
     # set up torch optimization    
     # init with constant value
@@ -189,7 +187,7 @@ def optim_proc(config):
 
         # rendered view gradients
         for ((el, az), wt) in zip(cam_pos, vw_wts):
-            vw_v, vw_g = diffmesh.gradient(hfield, el, az, r=cam_rad)
+            vw_v, vw_g = diffmesh.gradient(semantic_loss, hfield, el, az, r=cam_rad)
             custom_loss += wt * vw_v
             # vw_g is the full gradient, but we only care about the middle section
             vw_gn = normalize_gradients(vw_g, edge=edge_border)
@@ -206,25 +204,25 @@ def optim_proc(config):
         hfield_torch.grad = None
         cl_v.backward(retain_graph=True)
         cl_gn = normalize_gradients(hfield_torch.grad)
-        custom_loss += cl_wt * cl_v
+        custom_loss += cl_wt * cl_v.item()
         custom_grads += cl_wt * cl_gn
 
         hfield_torch.grad = None
         sm_v.backward(retain_graph=True)
         sm_gn = normalize_gradients(hfield_torch.grad)
-        custom_loss += sm_wt * sm_v
+        custom_loss += sm_wt * sm_v.item()
         custom_grads += sm_wt * sm_gn
         
         hfield_torch.grad = None
         mh_v.backward(retain_graph=True)
         mh_gn = normalize_gradients(hfield_torch.grad)
-        custom_loss += mh_wt * mh_v
+        custom_loss += mh_wt * mh_v.item()
         custom_grads += mh_wt * mh_gn
         
         hfield_torch.grad = None
         ng_v.backward(retain_graph=True)
         ng_gn = normalize_gradients(hfield_torch.grad)
-        custom_loss += ng_wt * ng_v
+        custom_loss += ng_wt * ng_v.item()
         custom_grads += ng_wt * ng_gn
 
         # add in the acoustic gradient
