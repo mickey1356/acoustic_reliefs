@@ -12,14 +12,19 @@ include_directories(include
 
 set(SRC_FILES
     src/aca.cpp
-    src/acoustics3d.cpp
     src/adjoint.cpp
     src/clustertree.cpp
     src/derivatives.cpp
     src/helpers.cpp
     src/hmatrix.cpp
     src/integrate.cpp
+    src/read_obj.cpp
 )
+
+add_executable(sphere_test ${SRC_FILES} sphere.cpp)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(sphere_test PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # for nanobind
 if (CMAKE_VERSION VERSION_LESS 3.18)
@@ -38,5 +43,5 @@ execute_process(
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
-nanobind_add_module(acoustics3d NOMINSIZE ${SRC_FILES})
+nanobind_add_module(acoustics3d NOMINSIZE ${SRC_FILES} src/acoustics3d.cpp)
 target_link_libraries(acoustics3d PRIVATE OpenMP::OpenMP_CXX)
