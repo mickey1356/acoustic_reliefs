@@ -385,12 +385,12 @@ void compute_der_C(double k, int HH,
 
 double compute_u(int LL, int HH, const Eigen::ArrayXd &L, const vec &yt, Eigen::ArrayXd &u) {
     double L_sum = L.sum();
-    double L_sum_sqr = pow(L_sum, 2);
-    double L_sqr_sum = L.square().sum();
-    double c = (L_sum_sqr - L_sqr_sum) / ((LL - 1) * L_sqr_sum);
+    double L_sqr_of_sum = pow(L_sum, 2);
+    double L_sum_of_sqr = L.square().sum();
+    double c = (L_sqr_of_sum - L_sum_of_sqr) / ((LL - 1) * L_sum_of_sqr);
 
     // compute u = dc/dyt = dc/dL * dL/dyt (1 x LL)
-    u = 4 * (L_sum * L_sqr_sum - L * L_sum_sqr) / ((LL - 1) * L_sqr_sum * L_sqr_sum) * yt.array();
+    u = 4 * (L_sum * L_sum_of_sqr - L * L_sqr_of_sum) / ((LL - 1) * L_sum_of_sqr * L_sum_of_sqr) * yt.array();
     return c;
 }
 
