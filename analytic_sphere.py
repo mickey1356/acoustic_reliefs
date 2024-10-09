@@ -3,6 +3,8 @@ import scipy.special as scp
 
 import matplotlib.pyplot as plt
 
+import build.acoustics3d as ac3d
+
 c = 343
 
 def j(l, z):
@@ -24,11 +26,11 @@ def ps(r, theta, k, a, N=100):
     return val
 
 def main():
-    # freqs generated: 50, 100, 200, 300, 500, 1000
-    freq = 1000
+    freq = 100
     k = 2 * np.pi * freq / c
 
     r, a = 10, 1
+    bem_pts = 200
     num_points = 200
     thetas = np.linspace(0, 2 * np.pi, num=num_points)
     pressures = np.array([ps(r, theta, k, a) for theta in thetas])
@@ -40,26 +42,28 @@ def main():
     points_imag = np.column_stack([np.abs(pressures_imag) * np.cos(thetas), np.abs(pressures_imag) * np.sin(thetas)])
 
     plt_R = max(np.max(np.abs(pressures_real)), np.max(np.abs(pressures_imag)))
+    # plt_R = np.mean(np.abs(pressures_imag))
     plt_eps = 0.2 * plt_R
 
-    bem_dat = np.genfromtxt(f"outputs/data/sphere_{freq}hz.txt", dtype=float, delimiter=" ")
+    bem_cmplx = ac3d.sphere("test-data/spheres/sphere_m.obj", freq, LL=bem_pts, lrad=r, actual=False)
+    bem_dat = np.column_stack([bem_cmplx.real, bem_cmplx.imag])
 
     bem_thetas = np.linspace(0, 2 * np.pi, num=bem_dat.shape[0])
     bem_points_real = np.column_stack([np.abs(bem_dat[:, 0]) * np.cos(bem_thetas), np.abs(bem_dat[:, 0]) * np.sin(bem_thetas)])
     bem_points_imag = np.column_stack([np.abs(bem_dat[:, 1]) * np.cos(bem_thetas), np.abs(bem_dat[:, 1]) * np.sin(bem_thetas)])
 
-    actual_bem = np.array([ps(r, theta, k, a) for theta in bem_thetas])
-    act_bem_real = np.abs(np.real(actual_bem))
-    act_bem_imag = np.abs(np.imag(actual_bem))
+    # quantify the error numerically
+    actual_dat = np.array([ps(r, theta, k, a) for theta in bem_thetas])
+    act_real = np.abs(np.real(actual_dat))
+    act_imag = np.abs(np.imag(actual_dat))
     bem_real = np.abs(bem_dat[:, 0])
     bem_imag = np.abs(bem_dat[:, 1])
-
-    rel_err_real = (act_bem_real - bem_real) / act_bem_real
-    rel_err_imag = (act_bem_imag - bem_imag) / act_bem_imag
+    rel_err_real = (act_real - bem_real) / act_real
+    rel_err_imag = (act_imag - bem_imag) / act_imag
 
     plt.figure(figsize=(8, 8), dpi=200)
-    plt.title(f"f = {freq:.2f} Hz\nka = {k * a:.4f}\n" \
-              f"mae: {np.mean(np.abs(act_bem_real - bem_real)):.5f} - {np.mean(np.abs(act_bem_imag - bem_imag)):.5f}\n" \
+    plt.title(f"freq = {freq:.2f} Hz\nka = {k * a:.4f}\n" \
+              f"mae: {np.mean(np.abs(act_real - bem_real)):.5f} - {np.mean(np.abs(act_imag - bem_imag)):.5f}\n" \
               f"rel mae: {np.mean(rel_err_real):.5f} - {np.mean(rel_err_imag):.5f}")
     plt.plot(plt_R * np.cos(thetas), plt_R * np.sin(thetas), 'k:', label=f"r={plt_R:.2f}")
     plt.plot(points_real[:, 0], points_real[:, 1], 'b-', label="analytic real")

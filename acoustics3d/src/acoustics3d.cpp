@@ -14,6 +14,7 @@
 #include "adjoint.h"
 #include "clustertree.h"
 #include "helpers.h"
+#include "sphere.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -254,7 +255,7 @@ std::unordered_map<int, int> DiffBEM::get_Hs() {
     return _Hs;
 }
 
-NB_MODULE(bemlib3d, m) {
+NB_MODULE(acoustics3d, m) {
     nb::class_<DiffBEM>(m, "DiffBEM")
         .def(nb::init<int, double, const std::vector<double> &, int, double, double, double, double, bool>(),
              "cluster_size"_a = 64, "radius_factor"_a = 1.5, "freq_bands"_a = std::vector<int>{1000}, "n_freqs"_a = 1,
@@ -263,11 +264,13 @@ NB_MODULE(bemlib3d, m) {
         .def("set_diff_points", &DiffBEM::set_diff_points, "diff_pts"_a)
         .def("precompute", &DiffBEM::precompute, "Ps"_a, "Es"_a, "diff_pts"_a)
         .def("value", &DiffBEM::value)
-        .def("band_value", &DiffBEM::band_value)
+        .def("band_value", &DiffBEM::band_value, "freq_band"_a)
         .def("values", &DiffBEM::values)
         .def("gradient", &DiffBEM::gradient, "x"_a)
         .def("get_mesh", nb::overload_cast<>(&DiffBEM::get_mesh))
         .def("get_mesh", nb::overload_cast<const bem3d::vec &>(&DiffBEM::get_mesh), "x"_a)
         .def("get_Hs", &DiffBEM::get_Hs)
         .def_rw("silent", &DiffBEM::silent);
+
+    m.def("sphere", &bem3d::sphere_test::sphere, "sphere_mesh"_a, "freq"_a, "LL"_a = 100, "lrad"_a = 10, "actual"_a = false);
 }
