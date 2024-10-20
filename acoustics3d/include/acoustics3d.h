@@ -45,7 +45,7 @@ private:
     std::unordered_map<int, int> _Hs;
     std::vector<std::vector<pii>> _elements;
 
-    int _Ne, _HH;
+    int _Ne = 0, _HH = 0;
 
     // problem parameters
     int _cluster_size;
@@ -59,5 +59,5 @@ private:
     bool _recompute_matrices;
 
     // make sure pre-steps have been completed
-    bool _mesh_set = false, _diff_set = false, _raster_mesh_set = false;
+    bool _mesh_set = false, _diff_set = false;
 };

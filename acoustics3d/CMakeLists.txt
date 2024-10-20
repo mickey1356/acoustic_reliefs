@@ -21,11 +21,6 @@ set(SRC_FILES
     src/read_obj.cpp
 )
 
-# add_executable(sphere_test ${SRC_FILES} sphere.cpp)
-# if(OpenMP_CXX_FOUND)
-#     target_link_libraries(sphere_test PUBLIC OpenMP::OpenMP_CXX)
-# endif()
-
 # for nanobind
 if (CMAKE_VERSION VERSION_LESS 3.18)
   set(DEV_MODULE Development)

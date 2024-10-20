@@ -60,7 +60,6 @@ std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::set_mesh(const bem3d::mat3 &Ps, co
     // compute listener points
     bem3d::compute_listener_pts(_Ls, _listener_ds);
 
-    _raster_mesh_set = true;
     _mesh_set = true;
     return std::make_pair(_Ps, _Es);
 }
@@ -107,30 +106,20 @@ std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::precompute(const bem3d::mat3 &Ps, 
 
 double DiffBEM::value() {
     if (!_mesh_set) {
-        if (_raster_mesh_set) {
-            this->set_mesh(_Ps, _Es);
-        } else {
-            std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
-            return -1;
-        }
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return -1;
     }
-
-    // compute actual Ps (x is a heightfield over the differentiable points)
-    bem3d::mat3 Ps = _Ps;
-    // for (const auto &hh : _Hs) {
-    //     Ps(hh.first, 1) = x[hh.second] + _Ps(hh.first, 1);
-    // }
 
     // compute intermediate values
     bem3d::mat3 Cs, Ns;
-    bem3d::compute_intermediates(Ps, _Es, Cs, Ns);
+    bem3d::compute_intermediates(_Ps, _Es, Cs, Ns);
 
     double c = 0;
     bem3d::vec dcdh;
     std::vector<bem3d::cvec> xs, ys, lmbs, adj_bs;
 
     for (double freq_band : _freq_bands) {
-        c += bem3d::gradient(_Ne, _HH, _elements, Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
+        c += bem3d::gradient(_Ne, _HH, _elements, _Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
     }
 
     // average gradients over freq bands
@@ -140,47 +129,35 @@ double DiffBEM::value() {
 
 double DiffBEM::band_value(double freq_band) {
     if (!_mesh_set) {
-        if (_raster_mesh_set) {
-            this->set_mesh(_Ps, _Es);
-        } else {
-            std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
-            return -1;
-        }
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return -1;
     }
 
-    bem3d::mat3 Ps = _Ps;
-
     bem3d::mat3 Cs, Ns;
-    bem3d::compute_intermediates(Ps, _Es, Cs, Ns);
+    bem3d::compute_intermediates(_Ps, _Es, Cs, Ns);
 
     bem3d::vec dcdh;
     std::vector<bem3d::cvec> xs, ys, lmbs, adj_bs;
 
-    double c = bem3d::gradient(_Ne, _HH, _elements, Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
+    double c = bem3d::gradient(_Ne, _HH, _elements, _Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
     return c;
 }
 
 std::vector<double> DiffBEM::values() {
     if (!_mesh_set) {
-        if (_raster_mesh_set) {
-            this->set_mesh(_Ps, _Es);
-        } else {
-            std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
-            return std::vector<double>();
-        }
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return std::vector<double>();
     }
 
-    bem3d::mat3 Ps = _Ps;
-
     bem3d::mat3 Cs, Ns;
-    bem3d::compute_intermediates(Ps, _Es, Cs, Ns);
+    bem3d::compute_intermediates(_Ps, _Es, Cs, Ns);
 
     bem3d::vec dcdh;
     std::vector<bem3d::cvec> xs, ys, lmbs, adj_bs;
     std::vector<double> coeffs;
 
     for (double freq_band : _freq_bands) {
-        double c = bem3d::gradient(_Ne, _HH, _elements, Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
+        double c = bem3d::gradient(_Ne, _HH, _elements, _Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
         coeffs.push_back(c);
     }
 
@@ -189,12 +166,8 @@ std::vector<double> DiffBEM::values() {
 
 std::pair<double, bem3d::vec> DiffBEM::gradient(const bem3d::vec &x) {
     if (!_mesh_set) {
-        if (_raster_mesh_set) {
-            this->set_mesh(_Ps, _Es);
-        } else {
-            std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
-            return std::make_pair(-1, bem3d::vec());
-        }
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return std::pair<double, bem3d::vec>();
     }
     if (!_diff_set) {
         std::cerr << "Error! No differentiable points set. Set them using set_diff_pts or precompute." << std::endl;
@@ -229,7 +202,7 @@ std::pair<double, bem3d::vec> DiffBEM::gradient(const bem3d::vec &x) {
 }
 
 std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::get_mesh() {
-    if (!_raster_mesh_set) {
+    if (!_mesh_set) {
         std::cout << "Warning! No mesh set. Behavior might not be as expected." << std::endl;
     }
 
@@ -237,7 +210,7 @@ std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::get_mesh() {
 }
 
 std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::get_mesh(const bem3d::vec &x) {
-    if (!_raster_mesh_set) {
+    if (!_mesh_set) {
         std::cout << "Warning! No mesh set. Behavior might not be as expected." << std::endl;
     }
     if (!_diff_set) {
