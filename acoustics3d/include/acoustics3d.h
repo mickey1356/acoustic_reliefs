@@ -24,6 +24,7 @@ public:
 
     // returns the averaged diffusion coefficient of the current mesh over all frequency bands
     double value();
+    double value(const bem3d::vec &x);
     double band_value(double freq_band);
     // returns the diffusion coefficients of the current mesh for all frequency bands
     std::vector<double> values();

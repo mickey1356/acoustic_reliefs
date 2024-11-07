@@ -127,6 +127,36 @@ double DiffBEM::value() {
     return c;
 }
 
+double DiffBEM::value(const bem3d::vec &x) {
+    if (!_mesh_set) {
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return 0;
+    }
+
+    // compute actual Ps (x is a heightfield over the differentiable points)
+    bem3d::mat3 Ps = _Ps;
+    for (const auto &hh : _Hs) {
+        Ps(hh.first, 1) = x[hh.second] + _Ps(hh.first, 1);
+    }
+
+    // compute intermediate values
+    bem3d::mat3 Cs, Ns;
+    bem3d::compute_intermediates(Ps, _Es, Cs, Ns);
+
+    double c = 0;
+    bem3d::vec dcdh;
+    std::vector<bem3d::cvec> xs, ys, lmbs, adj_bs;
+
+    for (double freq_band : _freq_bands) {
+        c += bem3d::gradient(_Ne, _HH, _elements, Ps, _Es, Cs, Ns, _Ls, true, freq_band, _n_freqs, false, xs, ys, lmbs, adj_bs, dcdh, _approx_ACA_tol, _Q_ACA_tol, _solver_tol, _recompute_matrices, silent, &_direct, &_approx);
+    }
+
+    // average gradients over freq bands
+    c /= _freq_bands.size();
+
+    return c;
+}
+
 double DiffBEM::band_value(double freq_band) {
     if (!_mesh_set) {
         std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
@@ -236,7 +266,8 @@ NB_MODULE(acoustics3d, m) {
         .def("set_mesh", &DiffBEM::set_mesh, "Ps"_a, "Es"_a)
         .def("set_diff_points", &DiffBEM::set_diff_points, "diff_pts"_a)
         .def("precompute", &DiffBEM::precompute, "Ps"_a, "Es"_a, "diff_pts"_a)
-        .def("value", &DiffBEM::value)
+        .def("value", nb::overload_cast<>(&DiffBEM::value))
+        .def("value", nb::overload_cast<const bem3d::vec &>(&DiffBEM::value), "x"_a)
         .def("band_value", &DiffBEM::band_value, "freq_band"_a)
         .def("values", &DiffBEM::values)
         .def("gradient", &DiffBEM::gradient, "x"_a)

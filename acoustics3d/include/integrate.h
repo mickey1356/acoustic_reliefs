@@ -8,10 +8,6 @@
 
 namespace bem3d {
 
-inline std::complex<double> G(double k, double r) {
-    return std::exp(-1.0i * k * r) / (4 * PI * r);
-}
-
 inline std::complex<double> dGdr(double k, double r) {
     return std::exp(-1.0i * k * r) * (-1.0i * k * r - 1.0) / (4 * PI * r * r);
 }

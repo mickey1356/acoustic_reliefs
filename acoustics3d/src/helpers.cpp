@@ -46,7 +46,7 @@ void spherical_to_cartesian(double radius, const Eigen::ArrayXd &elevations, con
 void compute_G_r(const mat3 &Cs, double k, cvec &G_r) {
     G_r.setZero(Cs.rows());
     auto r = (Cs.rowwise() - SRC_PT).rowwise().norm().array();
-    G_r = (1.0i * k * r).exp() / (4 * PI * r);
+    G_r = (-1.0i * k * r).exp() / (4 * PI * r);
 }
 
 int compute_listener_pts(mat3 &Ls, double ds) {
