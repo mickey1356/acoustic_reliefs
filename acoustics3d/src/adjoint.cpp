@@ -22,7 +22,8 @@
 namespace bem3d {
 
 double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
-                const mat3 &Ps, const imat3 &Es, const mat3 &Cs, const mat3 &Ns, const mat3 &Ls,
+                const mat3 &Ps, const imat3 &Es, const Eigen::RowVector3d &src_pt,
+                const mat3 &Cs, const mat3 &Ns, const mat3 &Ls,
                 bool forward_only, double freq_band, int n_freqs, bool actual,
                 std::vector<cvec> &xs, std::vector<cvec> &ys, std::vector<cvec> &lmbs, std::vector<cvec> &adj_bs, vec &dcdh,
                 double approx_ACA_tol, double Q_aca_tol, double solver_tol, bool recompute_matrix, bool silent,
@@ -60,7 +61,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
             std::cout << "  ~ " << frequencies[ff] << " Hz (" << ff + 1 << " / " << n_freqs << ") ~  " << std::endl;
         double k = freq_to_wavenumber(frequencies[ff]);
         cvec G_r;
-        compute_G_r(Cs, k, G_r);
+        compute_G_r(Cs, src_pt, k, G_r);
         cvec x, y_cmplx;
 
         if (actual) {
@@ -223,7 +224,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
         compute_der_B(k, Ne, HH, Ps, Es, elements, lmb, x, der_B, silent);
 
         // compute C = lmb.T * db/dh
-        compute_der_C(k, HH, Ps, Es, elements, lmb, der_C, silent);
+        compute_der_C(k, HH, Ps, Es, src_pt, elements, lmb, der_C, silent);
 
         // dc/dh = sum_F A - B + C
         dcdh += (der_A - der_B + der_C);
@@ -350,7 +351,7 @@ void compute_der_B(double k, int Ne, int HH,
 }
 
 void compute_der_C(double k, int HH,
-                   const mat3 &Ps, const imat3 &Es,
+                   const mat3 &Ps, const imat3 &Es, const Eigen::RowVector3d &src_pt,
                    const std::vector<std::vector<pii>> &elements, const cvec &lmb, vec &der_C, bool silent) {
 
     der_C.setZero(HH);
@@ -368,7 +369,7 @@ void compute_der_C(double k, int HH,
             vec3 p2 = Ps.row(ei[1]);
             vec3 p3 = Ps.row(ei[2]);
 
-            der_C[h] -= (dbi_dpy(p1, p2, p3, SRC_PT, k) * lmb[i]).real();
+            der_C[h] -= (dbi_dpy(p1, p2, p3, src_pt, k) * lmb[i]).real();
         }
 
 #pragma omp critical

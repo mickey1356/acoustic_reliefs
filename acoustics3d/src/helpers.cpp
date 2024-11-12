@@ -43,13 +43,13 @@ void spherical_to_cartesian(double radius, const Eigen::ArrayXd &elevations, con
     pts.col(2) = -radius * theta_rad.sin() * phi_rad.sin();
 }
 
-void compute_G_r(const mat3 &Cs, double k, cvec &G_r) {
+void compute_G_r(const mat3 &Cs, const Eigen::RowVector3d &src_pt, double k, cvec &G_r) {
     G_r.setZero(Cs.rows());
-    auto r = (Cs.rowwise() - SRC_PT).rowwise().norm().array();
+    auto r = (Cs.rowwise() - src_pt).rowwise().norm().array();
     G_r = (-1.0i * k * r).exp() / (4 * PI * r);
 }
 
-int compute_listener_pts(mat3 &Ls, double ds) {
+int compute_listener_pts(mat3 &Ls, double lr, double ds) {
     std::vector<double> elevations{0}, azimuths{0};
     for (double elev = ds; elev < 91; elev += ds) {
         for (double azim = 0; azim < 360; azim += ds) {
@@ -59,7 +59,7 @@ int compute_listener_pts(mat3 &Ls, double ds) {
     }
     Eigen::ArrayXd elev_vec = Eigen::ArrayXd::Map(elevations.data(), elevations.size());
     Eigen::ArrayXd azim_vec = Eigen::ArrayXd::Map(azimuths.data(), azimuths.size());
-    spherical_to_cartesian(LISTENER_RADIUS, elev_vec, azim_vec, Ls);
+    spherical_to_cartesian(lr, elev_vec, azim_vec, Ls);
     return static_cast<int>(Ls.rows());
 }
 

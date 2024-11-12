@@ -15,7 +15,7 @@ public:
     //   - clustertree params (leaf size and radius factor)
     //   - freq bands and no. freqs per band
     //   - estimation tolerances and whether or not to save the matrices
-    DiffBEM(int cluster_size, double radius_factor, const std::vector<double> &freq_bands, int n_freqs, double approx_ACA_tol, double Q_ACA_tol, double solver_tol, double listener_ds, bool recompute_matrices);
+    DiffBEM(int cluster_size, double radius_factor, const std::vector<double> &freq_bands, int n_freqs, double approx_ACA_tol, double Q_ACA_tol, double solver_tol, const Eigen::RowVector3d &src_pt, double listener_radius, double listener_ds, bool recompute_matrices);
 
     // precompute the direct and approx blocks, listener positions, and Hs/elements (diff points)
     std::pair<bem3d::mat3, bem3d::imat3> set_mesh(const bem3d::mat3 &Ps, const bem3d::imat3 &Es);
@@ -37,6 +37,7 @@ public:
     std::unordered_map<int, int> get_Hs();
 
     bool silent = false;
+    bool use_actual = false;
 
 private:
     bem3d::mat3 _Ps, _Ls;
@@ -56,7 +57,8 @@ private:
     double _approx_ACA_tol;
     double _Q_ACA_tol;
     double _solver_tol;
-    double _listener_ds;
+    Eigen::RowVector3d _src_pt = Eigen::RowVector3d(0, 100, 0);
+    double _listener_radius, _listener_ds;
     bool _recompute_matrices;
 
     // make sure pre-steps have been completed
