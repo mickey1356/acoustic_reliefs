@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "test"
+name = "ac_cat_0.04_no_norm3"
 
 [diffbem]
 cluster_size = 128
@@ -9,8 +9,6 @@ n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
 solver_tol = 1e-5
-src_pt = [0, 100, 0]
-listener_radius = 50
 listener_ds = 5
 recompute_matrices = false
 
@@ -29,15 +27,15 @@ cam_rad = 1
 
 [optimization]
 # acoustics_only | image | text | image_only | text_only
-guidance_type = "acoustics_only"
-normalize_grads = true
+guidance_type = "image"
+normalize_grads = false
 
 # for image optim
-tgt_fname = ""
+tgt_fname = "test-data/images/cat.png"
 # texture clip loss
-cl_wt = 5
+cl_wt = 500
 # renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
-vw_wts = [7, 2, 2, 2, 2]
+vw_wts = [500, 200, 200, 200, 200]
 
 # for text optim
 prompt = ""
@@ -52,11 +50,9 @@ save_every = 50
 lr = 1e-3
 init_val = 0.0
 # acoustics
-ac_wt = 7
+ac_wt = 700
 # smoothness
-sm_wt = 15
-# negative heights
-ng_wt = 2
+sm_wt = 5e5
 # barrier loss
-vmax = 0.1
-ba_wt = 1
+vmax = 0.07
+ba_wt = 3

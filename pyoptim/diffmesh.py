@@ -22,19 +22,18 @@ BASE_SCENE = {
 }
 
 # helper class to perform differentiable rendering of a heightfield
-# constructor takes the initial (flat) mesh, and saves the top-facing face
+# constructor takes an box mesh, and saves the top-facing face (maximum y-coord)
 # also takes the target image as input
 class DiffMesh:
-    def __init__(self, box_Ps, box_Es, vlim=None, device="cuda"):
-        self.vlim = vlim
+    def __init__(self, box_Ps, box_Es, device="cuda"):
         # first we want to get the top-facing face of the box
         # we assume +x is right, +y is up, and -z is forward
         # get dimensions of box
         x_max, y_max, z_max = np.max(box_Ps, axis=0)
         x_min, y_min, z_min = np.min(box_Ps, axis=0)
-        w, h, b = x_max - x_min, y_max - y_min, z_max - z_min
+        self.w, h, self.b = x_max - x_min, y_max - y_min, z_max - z_min
         # get the rows of box_Es where all(box_Ps[ei, 1] == h)
-        tmp_Es = box_Es[np.all(box_Ps[box_Es, 1] == h, axis=1)]
+        tmp_Es = box_Es[np.all(np.isclose(box_Ps[box_Es, 1], h), axis=1)]
         # technically, box_Ps, top_Es gives the plane mesh, but it'd probably be good to remove the unnecessary vertices
         top_Ps = []
         top_Es = []
@@ -90,11 +89,11 @@ class DiffMesh:
         dr.enable_grad(self.params["data"])
         
 
-    def get_sensor(self, elev, azi, r=1, res=256):
-        origin = [r * np.cos(elev) * np.cos(azi), r * np.sin(elev), -r * np.cos(elev) * np.sin(azi)]
+    def get_sensor(self, elev, azi, radius=1, res=256):
+        origin = [radius * np.cos(elev) * np.cos(azi), radius * np.sin(elev), -radius * np.cos(elev) * np.sin(azi)]
         sensor = {
             "type": "perspective",
-            "fov": 40,
+            "fov": 45,
             "to_world": T.look_at(origin=origin, target=[0, 0, 0], up=[0, 0, -1]),
             
             "sampler": {
@@ -111,12 +110,10 @@ class DiffMesh:
         }
         return mi.load_dict(sensor)
 
-    def render(self, hfield, elev, azi, r=1, res=256):
-        sensor = self.get_sensor(elev, azi, r, res)
+    def render(self, hfield, elev, azi, radius=1, res=256):
+        sensor = self.get_sensor(elev, azi, radius, res)
         # apply the new hfield mesh, we assume hfield is 2D (H x W)
         self.params["data"] = mi.TensorXf(hfield.squeeze()[:, :, np.newaxis])
-        if self.vlim:
-            self.params["data"] = dr.clamp(self.params["data"], -self.vlim, self.vlim)
         self.params.update()
         dr.enable_grad(self.params["data"])
 
@@ -133,8 +130,6 @@ class DiffMesh:
     def save_mesh(self, out_name, hfield):
         # apply the new hfield mesh, we assume hfield is 2D (H x W)
         self.params["data"] = mi.TensorXf(hfield.squeeze()[:, :, np.newaxis])
-        if self.vlim:
-            self.params["data"] = dr.clamp(self.params["data"], -self.vlim, self.vlim)
 
         height_vals = self.hfield_tex.eval_1(self.hfield_si)
         new_positions = height_vals * self.normals_initial + self.positions_initial
@@ -146,62 +141,76 @@ class DiffMesh:
 
 
 class ImageDiffMesh(DiffMesh):
-    def __init__(self, box_Ps, box_Es, tgt_fname, vlim=None, device="cuda"):
-        super().__init__(box_Ps, box_Es, vlim, device)
+    def __init__(self, box_Ps, box_Es, tgt_fname, img_model, device="cuda"):
+        super().__init__(box_Ps, box_Es, device)
 
         # prepare the reference scene
         # mitsuba flips UV coords of OBJ files
         bmp = mi.Bitmap(tgt_fname).convert(mi.Bitmap.PixelFormat.Y)
         ref_scene_dict = BASE_SCENE.copy()
         ref_scene_dict["ref_mesh"] = {
-            "type": "obj",
-            "filename": "pyoptim/plane_uv.obj",
+            "type": "rectangle",
+            "to_world": T.scale([self.w / 2, 1, self.b / 2]).rotate([1, 0, 0], -90),
             "bsdf": {
                 "type": "diffuse",
                 "reflectance": {
                     "type": "bitmap",
                     "bitmap": bmp,
+                    "to_uv": T.scale([1, -1, 1])
                 }
             }
         }
         self.ref_scene = mi.load_dict(ref_scene_dict)
+        self.img_model = img_model
 
     # gradient takes a heightfield texture (as a numpy array) and a camera, samples it onto the mesh, renders it
     # returns the loss wrt target image projected on the same flat mesh, as well as the gradient
-    def gradient(self, semantic_loss, hfield, elev, azi, r=1, res=256):
-        img = self.render(hfield, elev, azi, r, res)
+    def gradient(self, hfield, elev, azi, radius=1, res=256):
+        img = self.render(hfield, elev, azi, radius=radius, res=res)
 
         # render the reference scene
-        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, r=1, res=res))
+        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, res=res))
         ref_img_torch = torch.from_numpy(np.array(mi.util.convert_to_bitmap(ref_img)) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
         # wrap clip loss so it's compatible with drjit
         @dr.wrap_ad(source="drjit", target="torch")
-        def view_clip_loss(img):
+        def view_loss(img):
             img_torch = img.permute(2, 0, 1).unsqueeze(0)
-            loss = semantic_loss(img_torch, ref_img_torch)
+            loss = self.img_model(img_torch, ref_img_torch)
             return loss
         
         # actually compute the loss
-        loss = view_clip_loss(img)
+        loss = view_loss(img)
         # compute and extract the gradient
         dr.backward(loss)
         grad = dr.grad(self.params["data"])
         # return gradient as torch array
         return np.array(loss)[0], torch.from_numpy(np.array(grad).squeeze()).to(self.device)
+    
+    def check_ref(self, elev, azi, radius=1, res=256):
+        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res))
+        return torch.from_numpy(np.array(mi.util.convert_to_bitmap(ref_img)) / 255.0)
         
 
 class TextDiffMesh(DiffMesh):
-    def __init__(self, box_Ps, box_Es, vlim=None, device="cuda"):
-        super().__init__(box_Ps, box_Es, vlim, device)
+    def __init__(self, box_Ps, box_Es, text_model, device="cuda"):
+        super().__init__(box_Ps, box_Es, device)
+        self.text_model = text_model
 
-    def gradient(self, sds_loss, hfield, elev, azi, r=1, res=256):
-        img = self.render(hfield, elev, azi, r, res)
+    def gradient(self, hfield, elev, azi, radius=1, res=256):
+        img = self.render(hfield, elev, azi, radius=radius, res=res)
 
         # wrap sds loss so it's compatible with drjit
         @dr.wrap_ad(source="drjit", target="torch")
-        def view_sds_loss(img):
-            pass
+        def view_loss(img):
+            img_torch = img.permute(2, 0, 1).unsqueeze(0)
+            loss = self.text_model(img_torch)
+            return loss
+        
+        loss = view_loss(img)
+        dr.backward(loss)
+        grad = dr.grad(self.params["data"])
+        return np.array(loss)[0], torch.from_numpy(np.array(grad).squeeze()).to(self.device)
 
 
 # mitsuba's eval_1 assumes 0,0 as top-left

@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "test"
+name = "ac_0.01"
 
 [diffbem]
 cluster_size = 128
@@ -9,14 +9,12 @@ n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
 solver_tol = 1e-5
-src_pt = [0, 100, 0]
-listener_radius = 50
 listener_ds = 5
 recompute_matrices = false
 
 [dimensions]
-esize = 0.02
-subdiv_top = 1
+esize = 0.01
+subdiv_top = 0
 w = 0.6
 b = 0.6
 h = 0.15
@@ -28,9 +26,8 @@ edge_border = 2
 cam_rad = 1
 
 [optimization]
-# acoustics_only | image | text | image_only | text_only
+# acoustics only | image | text | image_only | text_only
 guidance_type = "acoustics_only"
-normalize_grads = true
 
 # for image optim
 tgt_fname = ""

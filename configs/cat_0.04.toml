@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "test"
+name = "cat_0.04"
 
 [diffbem]
 cluster_size = 128
@@ -9,14 +9,12 @@ n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
 solver_tol = 1e-5
-src_pt = [0, 100, 0]
-listener_radius = 50
 listener_ds = 5
 recompute_matrices = false
 
 [dimensions]
-esize = 0.02
-subdiv_top = 1
+esize = 0.04
+subdiv_top = 2
 w = 0.6
 b = 0.6
 h = 0.15
@@ -29,22 +27,17 @@ cam_rad = 1
 
 [optimization]
 # acoustics_only | image | text | image_only | text_only
-guidance_type = "acoustics_only"
-normalize_grads = true
+guidance_type = "image_only"
 
 # for image optim
-tgt_fname = ""
-# texture clip loss
-cl_wt = 5
+tgt_fname = "test-data/images/cat.png"
 # renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
-vw_wts = [7, 2, 2, 2, 2]
+vw_wts = [3, 1, 1, 1, 1]
 
 # for text optim
 prompt = ""
 latent_iters = 10
 latent_lr = 1e-1
-# renderer-latent weight
-rl_wt = 3
 
 # general optim
 iters = 200
@@ -52,11 +45,11 @@ save_every = 50
 lr = 1e-3
 init_val = 0.0
 # acoustics
-ac_wt = 7
+ac_wt = 5
 # smoothness
-sm_wt = 15
-# negative heights
-ng_wt = 2
+sm_wt = 10
+# texture clip loss
+cl_wt = 3
 # barrier loss
-vmax = 0.1
-ba_wt = 1
+vmax = 0.07
+ba_wt = 0.5

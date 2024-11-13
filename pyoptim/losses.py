@@ -32,13 +32,11 @@ class CLIPVisualEncoder(nn.Module):
         return fc_features, featuremaps
 
 
-class ImgImgCLIPLoss(nn.Module):
-    def __init__(self, device="cuda", geom_layers=[3], n_augs=4, sem_wt=0):
+class CLIPLoss(nn.Module):
+    def __init__(self, device="cuda", n_augs=4):
         super().__init__()
         self.device = device
-        self.geom_layers = geom_layers
         self.n_augs = n_augs
-        self.sem_wt = sem_wt
 
         self.model, prep = clip.load("ViT-B/32", device, jit=False, download_root="models/clip/")
         self.visual_encoder = CLIPVisualEncoder(self.model)
@@ -55,6 +53,13 @@ class ImgImgCLIPLoss(nn.Module):
         augs.append(transforms.RandomResizedCrop(224, scale=(0.8, 0.8), ratio=(1.0, 1.0)))
         augs.append(transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)))
         self.augs = transforms.Compose(augs)
+
+
+class ImgImgCLIPLoss(CLIPLoss):
+    def __init__(self, device="cuda", geom_layers=[3], sem_wt=0, n_augs=4):
+        super().__init__(device, n_augs)
+        self.geom_layers = geom_layers
+        self.sem_wt = sem_wt
 
     def forward(self, img, tgt):
         x = img.float().to(self.device)
@@ -84,7 +89,28 @@ class ImgImgCLIPLoss(nn.Module):
         
         return geom_loss + self.sem_wt * sem_loss
 
+class ImgTextCLIPLoss(CLIPLoss):
+    def __init__(self, device="cuda", n_augs=4):
+        super().__init__(device, n_augs)
+    
+    def forward(self, img):
+        x = img.to(self.device)
 
+        x_norm = self.normalizers(x)
+        x_augs = [x_norm]
+        for _ in range(self.n_augs):
+            x_augs.append(self.augs(x))
+        xs = torch.cat(x_augs, dim=0).to(self.device)
+        xs_sem_feats, _ = self.visual_encoder(xs)
+
+        sem_loss = (1 - torch.cosine_similarity(xs_sem_feats, self.text_features, dim=-1)).mean()
+        return sem_loss
+    
+    @torch.no_grad()
+    def encode_text(self, prompt):
+        self.text_features = self.model.encode_text(clip.tokenize(prompt).to(self.device))
+
+# from https://github.com/richzhang/PerceptualSimilarity
 class ImgImgLPIPSLoss(nn.Module):
     def __init__(self, device="cuda"):
         super().__init__()
@@ -96,3 +122,6 @@ class ImgImgLPIPSLoss(nn.Module):
         y = tgt.float().to(self.device)
 
         return self.lpip(x, y)
+    
+class SDSLoss(nn.Module):
+    pass
