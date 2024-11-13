@@ -4,81 +4,74 @@ import scipy.special as scp
 import matplotlib.pyplot as plt
 
 import build.acoustics3d as ac3d
+from pyoptim.helpers import read_mesh 
 
 c = 343
 
-def j(l, z):
-    return np.sqrt(np.pi / (2 * z)) * scp.jn(l + 0.5, z)
+def dj(l, z):
+    return scp.spherical_jn(l, z, True)
 
 def h(l, z):
-    return np.sqrt(np.pi / (2 * z)) * scp.hankel1(l + 0.5, z)
-
-def dj(l, z):
-    return l / z * j(l, z) - j(l + 1, z)
+    return scp.spherical_jn(l, z) + 1j * scp.spherical_yn(l, z)
 
 def dh(l, z):
-    return l / z * h(l, z) - h(l + 1, z)
+    return scp.spherical_jn(l, z, True) + 1j * scp.spherical_yn(l, z, True)
 
 def ps(r, theta, k, a, N=100):
     val = 0
     for n in range(N):
-        val += np.power(1j, n) * (2 * n + 1) * (dj(n, k * a) / dh(n, k * a)) * scp.eval_legendre(n, np.cos(theta)) * h(n, k * r)
-    return val
+        val -= np.power(1j, n) * (2 * n + 1) * (dj(n, k * a) / dh(n, k * a)) * scp.eval_legendre(n, np.cos(theta)) * h(n, k * r)
+    return np.conj(val)
 
 def main():
-    freq = 100
-    k = 2 * np.pi * freq / c
+    # freq = 1000
+    # sphere = "sphere_s"
+    
+    for freq in [100, 250, 500, 1000, 2000]:
+        for sphere in ["sphere_s"]:
+            k = 2 * np.pi * freq / c
 
-    r, a = 10, 1
-    bem_pts = 200
-    num_points = 200
-    thetas = np.linspace(0, 2 * np.pi, num=num_points)
-    pressures = np.array([ps(r, theta, k, a) for theta in thetas])
+            r, a = 10, 1
+            bem_pts = 360
+            num_points = 50
+            thetas = np.linspace(0, 2 * np.pi, num=num_points, endpoint=False)
+            pressures = np.array([ps(r, theta, k, a) for theta in thetas])
 
-    pressures_real = np.real(pressures)
-    pressures_imag = np.imag(pressures)
+            # compute element size
+            V, F = read_mesh(f"test-data/spheres/{sphere}.obj")
+            e1 = np.linalg.norm(V[F[:, 0]] - V[F[:, 1]], axis=-1)
+            e2 = np.linalg.norm(V[F[:, 1]] - V[F[:, 2]], axis=-1)
+            e3 = np.linalg.norm(V[F[:, 2]] - V[F[:, 0]], axis=-1)
+            esize = max(np.max(e1), np.max(e2), np.max(e3))
 
-    points_real = np.column_stack([np.abs(pressures_real) * np.cos(thetas), np.abs(pressures_real) * np.sin(thetas)])
-    points_imag = np.column_stack([np.abs(pressures_imag) * np.cos(thetas), np.abs(pressures_imag) * np.sin(thetas)])
+            bem_cmplx = ac3d.sphere(f"test-data/spheres/{sphere}.obj", freq, LL=bem_pts, lrad=r, actual=True)
+            bem_thetas = np.linspace(0, 2 * np.pi, num=bem_pts, endpoint=False)
 
-    plt_R = max(np.max(np.abs(pressures_real)), np.max(np.abs(pressures_imag)))
-    # plt_R = np.mean(np.abs(pressures_imag))
-    plt_eps = 0.2 * plt_R
+            # close the curve
+            bem_closed_curve = list(range(bem_pts)) + [0]
 
-    bem_cmplx = ac3d.sphere("test-data/spheres/sphere_m.obj", freq, LL=bem_pts, lrad=r, actual=False)
-    bem_dat = np.column_stack([bem_cmplx.real, bem_cmplx.imag])
+            # quantify the error numerically
+            actual_dat = np.array([ps(r, theta, k, a) for theta in bem_thetas])
+            mae = np.mean(np.abs(actual_dat - bem_cmplx))
+            rmae = np.mean(np.abs(actual_dat - bem_cmplx) / np.abs(actual_dat))
 
-    bem_thetas = np.linspace(0, 2 * np.pi, num=bem_dat.shape[0])
-    bem_points_real = np.column_stack([np.abs(bem_dat[:, 0]) * np.cos(bem_thetas), np.abs(bem_dat[:, 0]) * np.sin(bem_thetas)])
-    bem_points_imag = np.column_stack([np.abs(bem_dat[:, 1]) * np.cos(bem_thetas), np.abs(bem_dat[:, 1]) * np.sin(bem_thetas)])
+            fig, ax = plt.subplots(dpi=300, subplot_kw={"projection": "polar"}, constrained_layout=True)
 
-    # quantify the error numerically
-    actual_dat = np.array([ps(r, theta, k, a) for theta in bem_thetas])
-    act_real = np.abs(np.real(actual_dat))
-    act_imag = np.abs(np.imag(actual_dat))
-    bem_real = np.abs(bem_dat[:, 0])
-    bem_imag = np.abs(bem_dat[:, 1])
-    rel_err_real = (act_real - bem_real) / act_real
-    rel_err_imag = (act_imag - bem_imag) / act_imag
+            fig.suptitle(f"Scattered pressure, f = {freq} Hz, {sphere} ({esize:.2f} m)")
+            ax.set_title(f"MAE: {mae:.6f}   Rel. MAE: {rmae:.6f}", {"fontsize": 8})
 
-    plt.figure(figsize=(8, 8), dpi=200)
-    plt.title(f"freq = {freq:.2f} Hz\nka = {k * a:.4f}\n" \
-              f"mae: {np.mean(np.abs(act_real - bem_real)):.5f} - {np.mean(np.abs(act_imag - bem_imag)):.5f}\n" \
-              f"rel mae: {np.mean(rel_err_real):.5f} - {np.mean(rel_err_imag):.5f}")
-    plt.plot(plt_R * np.cos(thetas), plt_R * np.sin(thetas), 'k:', label=f"r={plt_R:.2f}")
-    plt.plot(points_real[:, 0], points_real[:, 1], 'b-', label="analytic real")
-    plt.plot(points_imag[:, 0], points_imag[:, 1], 'r-', label="analytic imag")
-    plt.plot(bem_points_real[:, 0], bem_points_real[:, 1], 'bs', markersize=3, label="bem real")
-    plt.plot(bem_points_imag[:, 0], bem_points_imag[:, 1], 'rs', markersize=3, label="bem imag")
-    plt.xlim(-plt_R - plt_eps, plt_R + plt_eps)
-    plt.ylim(-plt_R - plt_eps, plt_R + plt_eps)
-    plt.axvline(x=0, linestyle='--', linewidth=0.5, color='k')
-    plt.axhline(y=0, linestyle='--', linewidth=0.5, color='k')
-    plt.legend()
-    plt.savefig("t_sphere.png")
+            ax.plot(thetas, np.real(pressures), "bs", label="analytic real", markersize=1)
+            ax.plot(thetas, np.imag(pressures), "rs", label="analytic imag", markersize=1)    
+            ax.plot(bem_thetas[bem_closed_curve], np.real(bem_cmplx)[bem_closed_curve], "b-", label="bem real", linewidth=0.5)
+            ax.plot(bem_thetas[bem_closed_curve], np.imag(bem_cmplx)[bem_closed_curve], "r-", label="bem imag", linewidth=0.5)
 
+            ax.tick_params(labelsize=5)
+            ax.set_rlabel_position(0)
+            ax.yaxis.get_major_locator().base.set_params(nbins=5)
+            ax.tick_params(pad=-3)
+
+            fig.legend(loc="lower right")
+            fig.savefig(f"outputs/sphere_plots/{sphere}_actual_{freq}_Hz.png")
 
 if __name__ == "__main__":
     main()
-
-    # bempp_sim(50)
