@@ -227,8 +227,8 @@ std::pair<double, bem3d::vec> DiffBEM::gradient(const bem3d::vec &x) {
     }
 
     // average gradients over freq bands
-    c /= _freq_bands.size();
-    d_grad /= _freq_bands.size();
+    // c /= _freq_bands.size();
+    // d_grad /= _freq_bands.size();
 
     return std::make_pair(c, d_grad);
 }
@@ -260,6 +260,11 @@ std::unordered_map<int, int> DiffBEM::get_Hs() {
     return _Hs;
 }
 
+void DiffBEM::set_band(double freq_band) {
+    std::vector<double>().swap(_freq_bands);
+    _freq_bands.push_back(freq_band);
+}
+
 NB_MODULE(acoustics3d, m) {
     nb::class_<DiffBEM>(m, "DiffBEM")
         .def(nb::init<int, double, const std::vector<double> &, int, double, double, double, const Eigen::RowVector3d &, double, double, bool>(),
@@ -276,6 +281,7 @@ NB_MODULE(acoustics3d, m) {
         .def("get_mesh", nb::overload_cast<>(&DiffBEM::get_mesh))
         .def("get_mesh", nb::overload_cast<const bem3d::vec &>(&DiffBEM::get_mesh), "x"_a)
         .def("get_Hs", &DiffBEM::get_Hs)
+        .def("set_band", &DiffBEM::set_band, "freq_band"_a)
         .def_rw("silent", &DiffBEM::silent)
         .def_rw("use_actual", &DiffBEM::use_actual);
 

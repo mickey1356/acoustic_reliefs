@@ -81,4 +81,22 @@ std::vector<double> get_frequencies(double freq_band, int n_freqs) {
     return frequencies;
 }
 
+std::vector<double> get_frequencies_12(double freq_band, int n_freqs) {
+    if (n_freqs == 1) {
+        return std::vector<double>{freq_band};
+    }
+
+    double band_width = std::pow(2, (1.0 / 12.0));
+    double lower = std::log(freq_band / band_width);
+    double higher = std::log(freq_band * band_width);
+
+    double delta = (higher - lower) / (n_freqs - 1.0);
+
+    std::vector<double> frequencies;
+    for (int i = 0; i < n_freqs; i++) {
+        frequencies.push_back(std::exp(lower + i * delta));
+    }
+    return frequencies;
+}
+
 } // namespace bem3d

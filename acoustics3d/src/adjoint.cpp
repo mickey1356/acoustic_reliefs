@@ -41,6 +41,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
     dcdh.setZero(HH);
 
     auto frequencies = get_frequencies(freq_band, n_freqs);
+    // auto frequencies = get_frequencies_12(freq_band, n_freqs);
 
     int LL = Ls.rows();
     // int LL = compute_listener_pts(Ls, args.listener_ds);

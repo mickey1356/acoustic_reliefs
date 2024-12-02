@@ -19,5 +19,6 @@ void compute_G_r(const mat3 &Cs, const Eigen::RowVector3d &src_pt, double k, cve
 int compute_listener_pts(mat3 &Ls, double lr, double ds);
 
 std::vector<double> get_frequencies(double freq_band, int n_freqs);
+std::vector<double> get_frequencies_12(double freq_band, int n_freqs);
 
 } // namespace bem3d

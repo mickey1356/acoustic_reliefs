@@ -36,6 +36,8 @@ public:
 
     std::unordered_map<int, int> get_Hs();
 
+    void set_band(double freq_band);
+
     bool silent = false;
     bool use_actual = false;
 
