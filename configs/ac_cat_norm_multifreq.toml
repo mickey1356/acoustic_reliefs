@@ -1,10 +1,10 @@
 out_folder = "outputs/"
-name = "ac_0.02_1600"
+name = "ac_cat_0.02_norm_multifreq3"
 
 [diffbem]
 cluster_size = 128
 radius_factor = 1.5
-freq_bands = [1600]
+freq_bands = [1000, 2500]
 n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
@@ -27,10 +27,10 @@ cam_rad = 1
 
 [optimization]
 # acoustics only | image | text | image_only | text_only
-guidance_type = "acoustics_only"
+guidance_type = "image"
 
 # for image optim
-tgt_fname = ""
+tgt_fname = "test-data/images/cat.png"
 # texture clip loss
 cl_wt = 5
 # renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]

@@ -16,6 +16,9 @@ from pyoptim import diffmesh as dm
 
 CAM_POS = [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
 DEVICE = "cuda"
+SEED = 42
+
+np.random.seed(SEED)
 
 # assume tex and uvs are 0,0 = top-left
 def eval_uv(tex, uvs):
@@ -79,7 +82,7 @@ def neg_relu(tex_torch):
 def barrier_loss(tex_torch, vmax, buffer=1e-3):
     # add a small buffer to avoid infs
     vl = vmax + buffer
-    loss = torch.mean(torch.maximum(-torch.log(tex_torch + vl), -torch.log(vl - tex_torch)))
+    loss = -torch.mean(torch.minimum(torch.log(tex_torch + vl), torch.log(vl - tex_torch)))
     return loss
 
 # any special preprocessing to the optimization variable
@@ -136,6 +139,7 @@ def optim_proc(config):
 
     os.makedirs(out_fname, exist_ok=True)
 
+    print(f"Save location: {config["name"]}")
     # save the config
     with open(f"{out_fname}/{config["name"]}.toml", "w") as f:
         tomlkit.dump(config, f)
@@ -161,6 +165,12 @@ def optim_proc(config):
     diffbem = ac3d.DiffBEM(**diffbem_cfg)
     diffbem.silent = True
 
+    sample_freq = config["diffbem"].get("sample_freq", False)
+    if sample_freq:
+        freq_weights = 1 / np.array(diffbem_cfg["freq_bands"])
+        freq_weights /= np.sum(freq_weights)
+        sampled_freqs = np.random.choice(diffbem_cfg["freq_bands"], size=(iters, ), p=freq_weights)
+
     # generate mesh (0.6 x 0.6 x 0.15 [w x b x h, default])
     esize = config["dimensions"]["esize"]
     w = config["dimensions"]["w"]
@@ -180,6 +190,10 @@ def optim_proc(config):
         # the points we want to optimize are those at the top of the box
         diff_pts_idx = np.where(np.isclose(Ps[:, 1], np.max(Ps[:, 1])))[0]
         diff_Ps = Ps[diff_pts_idx]
+
+    if hfield_res <= 0:
+        hfield_res = 2 * int(np.ceil(np.sqrt(len(diff_pts_idx))))
+    print(f"Heightfield resolution: {hfield_res}")
 
     # construct cluster tree and set up differentiable points
     # the order of Es is changed, and Ps remains unchanged
@@ -219,10 +233,11 @@ def optim_proc(config):
     opt = torch.optim.Adam([hfield_torch], lr=config["optimization"]["lr"])
 
     # hfield = preprocess_tex(hfield_torch, edge_border).cpu().detach().numpy()
-    # imgs = [diffmesh.render(hfield, e, a) for e, a in cam_pos]
+    # imgs = [diffmesh.render(hfield, e, a, radius=cam_rad) for e, a in CAM_POS]
     # H.save_images("t_init.png", imgs, auto_grid=True)
-    # imgs = [diffmesh.check_ref(e, a) for e, a in cam_pos]
+    # imgs = [diffmesh.check_ref(e, a, radius=cam_rad) for e, a in CAM_POS]
     # H.save_images("t_ref.png", imgs, auto_grid=True)
+    # exit()
 
     tracker_dict = { "last_iter": -1 }
     for wt_lbl in weights:
@@ -242,6 +257,11 @@ def optim_proc(config):
 
         # acoustic gradient
         hfield = hfield_full.cpu().detach().numpy()
+
+        f = ",".join([str(f) for f in diffbem_cfg["freq_bands"]])
+        if sample_freq:
+            diffbem.set_band(sampled_freqs[it])
+            f = sampled_freqs[it]
 
         # these guidance types require the acoustics gradient
         if guidance_type in ["acoustics_only", "image", "text"]:
@@ -327,7 +347,7 @@ def optim_proc(config):
                 hfield_torch.clamp_(-vmax, vmax)
         
         # print(f"iter {1+it}: {tl_loss.item():.6f} ({ac_v:.6f}/{ac_gm:.6f} - {rd_v:.6f}/{rd_gm:.6f} - {cl_v:.6f}/{cl_gm:.6f} - {sm_v:.6f}/{sm_gm:.6f} - {mh_v:.6f}/{mh_gm:.6f} - {ng_v:.6f}/{ng_gm:.6f})")
-        pbar.set_postfix_str(f"Loss: {custom_loss:.6f} {hfield_torch.max():.3f} {hfield_torch.min():.3f}")
+        pbar.set_postfix_str(f"Loss: {custom_loss:.6f} - Freq: {f}")
 
         if ((1 + it) % save_every) == 0:
             with torch.no_grad():

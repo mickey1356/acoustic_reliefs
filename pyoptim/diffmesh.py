@@ -169,7 +169,7 @@ class ImageDiffMesh(DiffMesh):
         img = self.render(hfield, elev, azi, radius=radius, res=res)
 
         # render the reference scene
-        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, res=res))
+        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res))
         ref_img_torch = torch.from_numpy(np.array(mi.util.convert_to_bitmap(ref_img)) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
         # wrap clip loss so it's compatible with drjit

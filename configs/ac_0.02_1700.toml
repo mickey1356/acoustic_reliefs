@@ -1,10 +1,10 @@
 out_folder = "outputs/"
-name = "ac_0.02_1600"
+name = "ac_0.02_1700"
 
 [diffbem]
 cluster_size = 128
 radius_factor = 1.5
-freq_bands = [1600]
+freq_bands = [1700]
 n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5

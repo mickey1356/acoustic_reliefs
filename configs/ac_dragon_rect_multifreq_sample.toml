@@ -1,22 +1,23 @@
 out_folder = "outputs/"
-name = "ac_0.02_1600"
+name = "ac_dragon_rect_multifreq_sample"
 
 [diffbem]
 cluster_size = 128
 radius_factor = 1.5
-freq_bands = [1600]
+freq_bands = [800, 1000, 1250, 1600, 2000, 2500, 3150]
 n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
 solver_tol = 1e-5
 listener_ds = 5
 recompute_matrices = false
+sample_freq = true
 
 [dimensions]
 esize = 0.02
 subdiv_top = 1
-w = 0.6
-b = 0.6
+w = 0.7
+b = 0.5
 h = 0.15
 
 [image]
@@ -27,10 +28,10 @@ cam_rad = 1
 
 [optimization]
 # acoustics only | image | text | image_only | text_only
-guidance_type = "acoustics_only"
+guidance_type = "image"
 
 # for image optim
-tgt_fname = ""
+tgt_fname = "test-data/images/dragon.jpg"
 # texture clip loss
 cl_wt = 5
 # renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
@@ -44,7 +45,7 @@ latent_lr = 1e-1
 rl_wt = 3
 
 # general optim
-iters = 200
+iters = 500
 save_every = 50
 lr = 1e-3
 init_val = 0.0

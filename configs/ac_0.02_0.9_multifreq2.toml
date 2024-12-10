@@ -1,10 +1,10 @@
 out_folder = "outputs/"
-name = "ac_0.02_1600"
+name = "ac_0.02_0.9_multifreq2"
 
 [diffbem]
 cluster_size = 128
 radius_factor = 1.5
-freq_bands = [1600]
+freq_bands = [1000, 2000]
 n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
@@ -15,15 +15,15 @@ recompute_matrices = false
 [dimensions]
 esize = 0.02
 subdiv_top = 1
-w = 0.6
-b = 0.6
+w = 0.9
+b = 0.9
 h = 0.15
 
 [image]
 # 0.01 ~ 128, 0.02 ~ 64
 hfield_res = 128
 edge_border = 2
-cam_rad = 1
+cam_rad = 1.5
 
 [optimization]
 # acoustics only | image | text | image_only | text_only

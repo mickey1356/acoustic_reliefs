@@ -22,7 +22,7 @@ b = 0.6
 h = 0.15
 
 [image]
-# 0.01 ~ 128, 0.02 ~ 64
+# set to 0 to estimate an appropriate heightfield resolution
 hfield_res = 128
 edge_border = 2
 cam_rad = 1

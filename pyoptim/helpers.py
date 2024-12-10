@@ -28,7 +28,6 @@ def read_image(fname, w=None, h=None, format="L", resample=Image.Resampling.BILI
     return img
 
 def save_images(fname, imgs, grid_size=None, auto_grid=False, dpi=200, show_ax="off", show_cbar=True, **kwargs):
-        
     if grid_size is None or grid_size[0] * grid_size[1] < len(imgs):
         grid_size = (len(imgs), 1)
     if auto_grid:

@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "ac_matterhorn_0.02_norm"
+name = "ac_matterhorn_0.02_norm_2"
 
 [diffbem]
 cluster_size = 128
