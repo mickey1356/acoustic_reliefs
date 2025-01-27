@@ -14,7 +14,7 @@
 #define EPSILON 1e-6
 
 #define APPROX_ACA_MAX_K 300
-#define Q_ACA_MAX_K 1000
+#define Q_ACA_MAX_K 5000
 
 namespace bem3d {
 using namespace std::complex_literals;

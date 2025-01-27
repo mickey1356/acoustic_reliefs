@@ -26,7 +26,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 const mat3 &Cs, const mat3 &Ns, const mat3 &Ls,
                 bool forward_only, double freq_band, int n_freqs, bool actual,
                 std::vector<cvec> &xs, std::vector<cvec> &ys, std::vector<cvec> &lmbs, std::vector<cvec> &adj_bs, vec &dcdh,
-                double approx_ACA_tol, double Q_aca_tol, double solver_tol, bool recompute_matrix, bool silent,
+                double approx_ACA_tol, double Q_ACA_tol, double solver_tol, bool recompute_matrix, bool silent,
                 const std::vector<std::pair<pii, pii>> *direct, const std::vector<std::pair<pii, pii>> *approx) {
 
     if (!silent) {
@@ -98,7 +98,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
 
             if (!silent)
                 std::cout << "\nComputing Q matrix approx - " << LL << " listener points..." << std::endl;
-            auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_aca_tol, Q_ACA_MAX_K, !silent);
+            auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
             y_cmplx = Q_appx.first * (Q_appx.second * x);
 
             if (forward_only || recompute_matrix) {
@@ -174,7 +174,7 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 // compute adjoint RHS = adj_b = Q * vf
                 if (!silent)
                     std::cout << "Computing Q matrix approx - " << LL << " listener points..." << std::endl;
-                auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_aca_tol, Q_ACA_MAX_K, !silent);
+                auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
                 adj_b = Q_appx.second.transpose() * (Q_appx.first.transpose() * vf);
 
                 // recompute M

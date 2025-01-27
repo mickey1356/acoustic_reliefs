@@ -233,6 +233,56 @@ std::pair<double, bem3d::vec> DiffBEM::gradient(const bem3d::vec &x) {
     return std::make_pair(c, d_grad);
 }
 
+bem3d::cvec DiffBEM::pvals(double frequency) {
+    return pvals(frequency, _Ls);
+}
+
+bem3d::cvec DiffBEM::pvals(double frequency, const bem3d::mat3 &listeners) {
+    if (!_mesh_set) {
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return bem3d::cvec();
+    }
+
+    int LL = listeners.rows();
+
+    bem3d::mat3 Cs, Ns;
+    bem3d::compute_intermediates(_Ps, _Es, Cs, Ns);
+
+    double k = freq_to_wavenumber(frequency);
+    bem3d::cvec G_r;
+    compute_G_r(Cs, _src_pt, k, G_r);
+    bem3d::cvec x, y_cmplx;
+
+    if (!silent) {
+        std::cout << "===== Forward pass =====" << std::endl;
+        std::cout << "Computing direct/approx blocks..." << std::endl;
+    }
+
+    HMatrix *hmat = new HMatrix(_Ne, !silent);
+    hmat->compute_direct_and_approx_blocks_cpu(_direct, _approx, k, _Ps, _Es, Cs, Ns, _approx_ACA_tol);
+
+    if (!silent)
+        std::cout << "\nSolving linear system..." << std::endl;
+    Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
+    bicgstab.setTolerance(_solver_tol);
+    bicgstab.compute(*hmat);
+    x = bicgstab.solve(-G_r);
+    if (!silent)
+        std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
+
+    if (!silent)
+        std::cout << "\nComputing Q matrix approx - " << LL << " listener points..." << std::endl;
+    auto Q_appx = compute_ACA_listener(LL, _Ne, k, listeners, _Ps, _Es, Cs, Ns, _Q_ACA_tol, Q_ACA_MAX_K, !silent);
+    y_cmplx = Q_appx.first * (Q_appx.second * x);
+
+    delete hmat;
+    return y_cmplx;
+}
+
+bem3d::mat3 DiffBEM::get_listeners() {
+    return _Ls;
+}
+
 std::pair<bem3d::mat3, bem3d::imat3> DiffBEM::get_mesh() {
     if (!_mesh_set) {
         std::cout << "Warning! No mesh set. Behavior might not be as expected." << std::endl;
@@ -273,15 +323,23 @@ NB_MODULE(acoustics3d, m) {
         .def("set_mesh", &DiffBEM::set_mesh, "Ps"_a, "Es"_a)
         .def("set_diff_points", &DiffBEM::set_diff_points, "diff_pts"_a)
         .def("precompute", &DiffBEM::precompute, "Ps"_a, "Es"_a, "diff_pts"_a)
+
         .def("value", nb::overload_cast<>(&DiffBEM::value))
         .def("value", nb::overload_cast<const bem3d::vec &>(&DiffBEM::value), "x"_a)
         .def("band_value", &DiffBEM::band_value, "freq_band"_a)
         .def("values", &DiffBEM::values)
         .def("gradient", &DiffBEM::gradient, "x"_a)
+
+        .def("pvals", nb::overload_cast<double>(&DiffBEM::pvals), "frequency"_a)
+        .def("pvals", nb::overload_cast<double, const bem3d::mat3 &>(&DiffBEM::pvals), "frequency"_a, "listeners"_a)
+        .def("get_listeners", &DiffBEM::get_listeners)
+
         .def("get_mesh", nb::overload_cast<>(&DiffBEM::get_mesh))
         .def("get_mesh", nb::overload_cast<const bem3d::vec &>(&DiffBEM::get_mesh), "x"_a)
+
         .def("get_Hs", &DiffBEM::get_Hs)
         .def("set_band", &DiffBEM::set_band, "freq_band"_a)
+
         .def_rw("silent", &DiffBEM::silent)
         .def_rw("use_actual", &DiffBEM::use_actual);
 

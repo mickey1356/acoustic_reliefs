@@ -30,6 +30,11 @@ public:
     std::vector<double> values();
     // given an initial x, compute the value and the gradient
     std::pair<double, bem3d::vec> gradient(const bem3d::vec &x);
+    // assuming the mesh is set, given a frequency (not band), and a list of listener points, compute the complex pressure at said listener points
+    bem3d::cvec pvals(double frequency);
+    bem3d::cvec pvals(double frequency, const bem3d::mat3 &listeners);
+
+    bem3d::mat3 get_listeners();
 
     std::pair<bem3d::mat3, bem3d::imat3> get_mesh();
     std::pair<bem3d::mat3, bem3d::imat3> get_mesh(const bem3d::vec &x);
