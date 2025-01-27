@@ -70,7 +70,7 @@ def box_mesher(esize=0.01, w=0.6, b=0.6, h=0.15):
 
 
 # subdivides specific faces, and triangulates the non-triangular resultant faces by joining them to the other vertex
-def face_subdivision(Ps_, Es_, faces_, n_subdivisions=1):
+def face_subdivision(Ps_, Es_, faces_, n_subdivisions=1, ret_faces=False):
     Ps = Ps_.copy()
     Es = Es_.copy()
     faces = faces_.copy()
@@ -144,4 +144,8 @@ def face_subdivision(Ps_, Es_, faces_, n_subdivisions=1):
         Ps = nPs.copy()
         Es = nEs.copy()
         faces = nfaces.copy()
-    return Ps, Es
+    
+    if ret_faces:
+        return Ps, Es, faces
+    else:
+        return Ps, Es

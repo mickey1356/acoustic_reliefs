@@ -4,7 +4,9 @@ import scipy.special as scp
 import matplotlib.pyplot as plt
 
 import build.acoustics3d as ac3d
-from pyoptim.helpers import read_mesh 
+from pyoptim.helpers import read_mesh
+
+import pickle
 
 c = 343
 
@@ -27,8 +29,8 @@ def main():
     # freq = 1000
     # sphere = "sphere_s"
     
-    for freq in [100, 250, 500, 1000, 2000]:
-        for sphere in ["sphere_s"]:
+    for freq in [2000]:
+        for sphere in ["sphere_m"]:
             k = 2 * np.pi * freq / c
 
             r, a = 10, 1
@@ -44,7 +46,9 @@ def main():
             e3 = np.linalg.norm(V[F[:, 2]] - V[F[:, 0]], axis=-1)
             esize = max(np.max(e1), np.max(e2), np.max(e3))
 
-            bem_cmplx = ac3d.sphere(f"test-data/spheres/{sphere}.obj", freq, LL=bem_pts, lrad=r, actual=True)
+            print((np.sum(e1) + np.sum(e2) + np.sum(e3)) / (len(e1) + len(e2) + len(e3)))
+
+            bem_cmplx = ac3d.sphere(f"test-data/spheres/{sphere}.obj", freq, LL=bem_pts, lrad=r, actual=False)
             bem_thetas = np.linspace(0, 2 * np.pi, num=bem_pts, endpoint=False)
 
             # close the curve
@@ -72,6 +76,16 @@ def main():
 
             fig.legend(loc="lower right")
             fig.savefig(f"outputs/sphere_plots/{sphere}_actual_{freq}_Hz.png")
+
+            dd = {
+                "a_res": pressures,
+                "a_theta": thetas,
+                "b_res": bem_cmplx,
+                "b_theta": bem_thetas
+            }
+            with open(f"outputs/sphere_plots/analytical_{freq}.pkl", "wb") as f:
+                pickle.dump(dd, f)
+
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,60 @@
+out_folder = "outputs/"
+name = "ac_siggraph_0.6_multifreq_sample"
+
+[diffbem]
+cluster_size = 128
+radius_factor = 1.5
+freq_bands = [800, 1000, 1250, 1600, 2000, 2500, 3150]
+n_freqs = 1
+approx_ACA_tol = 1e-5
+Q_ACA_tol = 1e-5
+solver_tol = 1e-5
+listener_ds = 5
+recompute_matrices = false
+sample_freq = true
+
+[dimensions]
+esize = 0.02
+subdiv_top = 1
+w = 0.6
+b = 0.6
+h = 0.15
+
+[image]
+# 0.01 ~ 128, 0.02 ~ 64
+hfield_res = 128
+edge_border = 2
+cam_rad = 1
+
+[optimization]
+# acoustics only | image | text | image_only | text_only
+guidance_type = "image"
+
+# for image optim
+tgt_fname = "test-data/images/siggraph.png"
+# texture clip loss
+cl_wt = 5
+# renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
+vw_wts = [7, 2, 2, 2, 2]
+
+# for text optim
+prompt = ""
+latent_iters = 10
+latent_lr = 1e-1
+# renderer-latent weight
+rl_wt = 3
+
+# general optim
+iters = 500
+save_every = 50
+lr = 1e-3
+init_val = 0.0
+# acoustics
+ac_wt = 7
+# smoothness
+sm_wt = 15
+# negative heights
+ng_wt = 2
+# barrier loss
+vmax = 0.1
+ba_wt = 1

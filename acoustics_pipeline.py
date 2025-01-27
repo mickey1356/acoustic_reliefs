@@ -48,42 +48,4 @@ def pl(folders):
 if __name__ == "__main__":
     import glob
 
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq/mesh.obj", "cat_0.02_multifreq")
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq/mesh.obj", "cat_0.02_multifreq_close", src_pt=[0, 10, 0], lr=5)
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq/mesh.obj", "matterhorn_0.02_multifreq")
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq/mesh.obj", "matterhorn_0.02_multifreq_close", src_pt=[0, 10, 0], lr=5)
-
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq2/mesh.obj", "cat_0.02_multifreq2")
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq2/mesh.obj", "cat_0.02_multifreq2_close", src_pt=[0, 10, 0], lr=5)
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq2/mesh.obj", "matterhorn_0.02_multifreq2")
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq2/mesh.obj", "matterhorn_0.02_multifreq2_close", src_pt=[0, 10, 0], lr=5)
-
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq3/mesh.obj", "cat_0.02_multifreq3")
-    # pipeline("outputs/ac_cat_0.02_norm_multifreq3/mesh.obj", "cat_0.02_multifreq3_close", src_pt=[0, 10, 0], lr=5)
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq3/mesh.obj", "matterhorn_0.02_multifreq3")
-    # pipeline("outputs/ac_matterhorn_0.02_norm_multifreq3/mesh.obj", "matterhorn_0.02_multifreq3_close", src_pt=[0, 10, 0], lr=5)
-
-    # pipeline("outputs/ac_0.02_0.6_multfreq_sample3/mesh.obj", "ac_0.6_multifreq_sample3")
-    # pipeline("outputs/ac_cat_0.6_multfreq_sample3/mesh.obj", "ac_cat_0.6_multifreq_sample3")
-    # pipeline("outputs/ac_bunny_0.6_multifreq_sample/mesh.obj", "ac_bunny_0.6_multifreq_sample")
-    # pipeline("outputs/ac_matterhorn_0.6_multfreq_sample2/mesh.obj", "ac_matterhorn_0.6_multifreq_sample2")
-    # pipeline("outputs/ac_0.02_1500/mesh.obj", "ac_0.02_1500")
-    # pipeline("outputs/ac_0.02_1550/mesh.obj", "ac_0.02_1550")
-    # pipeline("outputs/ac_0.02_1650/mesh.obj", "ac_0.02_1650")
-    # pipeline("outputs/ac_0.02_1700/mesh.obj", "ac_0.02_1700")
-    # pipeline("outputs/ac_cat_0.9_multifreq_sample/mesh.obj", "ac_cat_0.9_multifreq_sample")
-
-    pipeline("outputs/ac_mountains_0.6_multifreq_sample/mesh.obj", "ac_mountains_0.6_multifreq_sample")
-    pipeline("outputs/ac_bunny_0.9_multifreq_sample/mesh.obj", "ac_bunny_0.9_multifreq_sample")
-    
-    # pipeline("outputs/ac_cat_0.02_norm_0.9/mesh.obj", "cat_0.02_0.9")
-    # pipeline("outputs/ac_cat_0.02_norm_0.9/mesh.obj", "cat_0.02_0.9_close", src_pt=[0, 10, 0], lr=5)
-    # pipeline("test-data/boxes/meshed_prd_s.obj", "prd_s_close", src_pt=[0, 10, 0], lr=5)
-    # pipeline("test-data/boxes/meshed_prd_l.obj", "prd_l_close", src_pt=[0, 10, 0], lr=5)
-
-    # pipeline("outputs/ac_bernd_0.04_norm/mesh.obj", "bernd_0.04")
-    # pipeline("outputs/ac_cat_0.04_norm/mesh.obj", "cat_0.04")
-    # pipeline("outputs/ac_mountains_0.04_norm/mesh.obj", "mountains_0.04")
-    # pipeline("outputs/ac_matterhorn_0.04_norm/mesh.obj", "matterhorn_0.04")
-    # pipeline("outputs/ac_peppers_0.04_norm/mesh.obj", "peppers_0.04")
-    # pipeline("outputs/ac_tux_0.04_norm/mesh.obj", "tux_0.04")
+    # pipeline("<PATH_TO_MESH>", "<OUTPUT_NAME>")

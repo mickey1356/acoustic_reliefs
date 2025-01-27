@@ -16,8 +16,13 @@ BASE_SCENE = {
     },
     "emitter": {
         "type": "envmap",
-        "filename": "test-data/envmaps/evening_sun.hdr",
-        "scale": 1.5,
+        "filename": "test-data/envmaps/hallstatt4_hd.hdr",
+        "scale": 1,
+        # "filename": "test-data/envmaps/mitsuba_interior.exr",
+        # "scale": 1,
+        # "filename": "test-data/envmaps/interior.exr",
+        # "scale": 0.2,
+
     },
 }
 
@@ -89,7 +94,12 @@ class DiffMesh:
         dr.enable_grad(self.params["data"])
         
 
-    def get_sensor(self, elev, azi, radius=1, res=256):
+    def get_sensor(self, elev, azi, radius=1, res=256, resx=None, resy=None):
+        if not resx:
+            resx = res
+        if not resy:
+            resy = res
+
         origin = [radius * np.cos(elev) * np.cos(azi), radius * np.sin(elev), -radius * np.cos(elev) * np.sin(azi)]
         sensor = {
             "type": "perspective",
@@ -102,16 +112,16 @@ class DiffMesh:
             },
             "film": {
                 "type": "hdrfilm",
-                "width": res,
-                "height": res,
+                "width": resx,
+                "height": resy,
                 "sample_border": True,
                 "pixel_format": "rgb",
             },
         }
         return mi.load_dict(sensor)
 
-    def render(self, hfield, elev, azi, radius=1, res=256):
-        sensor = self.get_sensor(elev, azi, radius, res)
+    def render(self, hfield, elev, azi, radius=1, res=256, resx=None, resy=None):
+        sensor = self.get_sensor(elev, azi, radius=radius, res=res, resx=resx, resy=resy)
         # apply the new hfield mesh, we assume hfield is 2D (H x W)
         self.params["data"] = mi.TensorXf(hfield.squeeze()[:, :, np.newaxis])
         self.params.update()
@@ -123,7 +133,7 @@ class DiffMesh:
         self.scene_params.update()
         
         # differentiably render image
-        img = mi.render(self.scene, self.params, sensor=sensor)
+        img = mi.render(self.scene, self.params, sensor=sensor) ** (1 / 2.2)
         return img
 
     # don't use this, this is only here for testing purposes
@@ -165,11 +175,11 @@ class ImageDiffMesh(DiffMesh):
 
     # gradient takes a heightfield texture (as a numpy array) and a camera, samples it onto the mesh, renders it
     # returns the loss wrt target image projected on the same flat mesh, as well as the gradient
-    def gradient(self, hfield, elev, azi, radius=1, res=256):
-        img = self.render(hfield, elev, azi, radius=radius, res=res)
+    def gradient(self, hfield, elev, azi, radius=1, res=256, resx=None, resy=None):
+        img = self.render(hfield, elev, azi, radius=radius, res=res, resx=resx, resy=resy)
 
         # render the reference scene
-        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res))
+        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res, resx=resx, resy=resy)) ** (1 / 2.2)
         ref_img_torch = torch.from_numpy(np.array(mi.util.convert_to_bitmap(ref_img)) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
         # wrap clip loss so it's compatible with drjit
@@ -187,8 +197,8 @@ class ImageDiffMesh(DiffMesh):
         # return gradient as torch array
         return np.array(loss)[0], torch.from_numpy(np.array(grad).squeeze()).to(self.device)
     
-    def check_ref(self, elev, azi, radius=1, res=256):
-        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res))
+    def check_ref(self, elev, azi, radius=1, res=256, resx=None, resy=None):
+        ref_img = mi.render(self.ref_scene, sensor=self.get_sensor(elev, azi, radius=radius, res=res, resx=resx, resy=resy))
         return torch.from_numpy(np.array(mi.util.convert_to_bitmap(ref_img)) / 255.0)
         
 

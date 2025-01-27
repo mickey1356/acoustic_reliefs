@@ -14,20 +14,24 @@ prd = [0.07, 0.01, 0.02, 0, 0.01, 0.02, 0.04, 0.03, 0.06, 0.33, 0.13, 0.14, 0.2,
 
 plot_egs = False
 
+lss = ['-', '--', ':', '-.']
+
 # plt.style.use('dark_background')
 
 freqs = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000]
 sixth_freqs = [106, 119, 133, 150, 168, 188, 211, 237, 266, 299, 335, 376, 422, 473, 530, 600, 670, 750, 840, 940, 1060, 1190, 1330, 1500, 1680, 1880, 2110, 2370, 2660, 2990, 3350, 3760, 4220]
 
-# to_plot = ["rect_0.6_0.01", "rect_0.6_0.02", "rect_0.6_0.04"]
-to_plot = ["rect_0.6_e0.02", "ac_0.02", "ac_0.6_multifreq_sample2", "prd_l"]
+# to_plot = ["rect_0.6_0.01_close", "ac_wave_square2_0.9_multifreq_sample", "waves_square2_0.9_multifreq_close"]
+# to_plot = ["rect_0.6_e0.02", "ac_0.02", "ac_matterhorn_0.6_multifreq_sample2", "ac_0.02_1500", "ac_0.02_1600", "ac_0.02_1700", "prd_l"]
+# to_plot = ["rect_0.6_e0.02", "ac_0.6_multifreq_sample2", "ac_0.6_multifreq_close", "prd_l"]
 # to_plot = ["rect_0.3_e0.02_close", "matterhorn_0.02_0.3_close", "rect_0.3_e0.02", "matterhorn_0.02_0.3", "prd_s"]
 # to_plot = ["rect_0.9_e0.02", "matterhorn_0.02_0.9", "cat_0.02_0.9", "peppers_0.02_0.9", "mountains_0.02_0.9"]
 # to_plot = ["rect_0.9_e0.02", "ac_0.02_0.9", "ac_cat_0.9_multifreq_sample", "ac_0.02_0.9_multifreq_sample"]
-# to_plot = ["rect_0.6_e0.02", "cat_0.02", "ac_cat_0.6_multifreq_sample", "ac_cat_0.6_multifreq_sample2", "prd_l", ]
-# to_plot = ["rect_0.6_e0.02", "matterhorn_0.02", "ac_matterhorn_0.6_multifreq_sample", "ac_matterhorn_0.6_multifreq_sample2", "prd_l", ]
-# to_plot = ["rect_0.6_e0.02", "ac_0.6_multifreq_sample2", "ac_cat_0.6_multifreq_sample", "ac_matterhorn_0.6_multifreq_sample", "ac_bunny_0.6_multifreq_sample", "prd_l"]
-# to_plot = ["prd_l"]
+# to_plot = ["rect_0.9_e0.02", "ac_0.02_0.9_multifreq_sample", "ac_fuji_0.9_multifreq_sample", "ac_bunny_0.9_multifreq_sample", "ac_matterhorn_0.9_multifreq_sample", "ac_peppers_0.9_multifreq_sample", "ac_mountains_0.9_multifreq_sample", "ac_mountains2_0.9_multifreq_sample", "ac_mountains3_0.9_multifreq_sample", "ac_matterhorn2_0.9_multifreq_sample", "ac_waves_square_0.9_multifreq_sample", "ac_waves2_0.9_multifreq_sample", "ac_fuji_0.9_multifreq_sample", "ac_corgi_0.9_multfreq_sample"]
+# to_plot = ["rect_0.6_e0.02", "ac_cat_0.6_multifreq_sample2", "hres_cat_0.6", "cat_rg5", "cat_rg10"]
+# to_plot = ["bunny18", "bunny48", "ac_bunny_64"]
+to_plot = ["rect_0.6", "corgi_0.6", "ac_0.6",]
+# to_plot = ["cat_0.6"]
 
 ref = None
 # ref = "rect_0.6_e0.02"
@@ -36,7 +40,7 @@ title = None
 lbls = {tp: tp for tp in to_plot}
 
 dat = []
-with open('outputs/coeffs.csv') as f:
+with open('outputs/coeffs2.csv') as f:
     dat = f.readlines()
 dat = [line.split(",") for line in dat]
 coef_dat = {line[0]: np.array(list(map(float, line[1:]))) for line in dat}

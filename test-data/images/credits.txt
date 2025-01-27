@@ -4,6 +4,9 @@ https://web.archive.org/web/20210115005858/https://homepages.cae.wisc.edu/~ece53
 cat.png
 https://www.pexels.com/photo/brown-tabby-cat-2071882/
 
+corgi.png
+https://www.pexels.com/photo/a-close-up-shot-of-an-adorable-corgi-4641833/
+
 coffee.png
 https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.coffee
 
@@ -16,11 +19,20 @@ https://web.archive.org/web/20210721105306/https://homepages.cae.wisc.edu/~ece53
 harvesters.png
 https://www.metmuseum.org/art/collection/search/435809
 
+landscape.jpg
+https://www.pexels.com/photo/lake-and-mountain-417074/
+
+landscape2.jpg
+https://www.pexels.com/photo/mirror-lake-reflecting-wooden-house-in-middle-of-lake-overlooking-mountain-ranges-147411/
+
 mandrill.png
 https://sipi.usc.edu/database/database.php?volume=misc&image=10#top
 
 matterhorn.png
 https://commons.wikimedia.org/wiki/File:Matterhornnorth.jpg
+
+merlion.jpg
+https://www.pexels.com/photo/white-concrete-statue-near-body-of-water-12657483/
 
 mountains.png
 https://www.pexels.com/photo/brown-black-and-white-mountain-under-white-and-blue-cloudy-sky-109243/
@@ -28,5 +40,14 @@ https://www.pexels.com/photo/brown-black-and-white-mountain-under-white-and-blue
 peppers.png
 https://sipi.usc.edu/database/database.php?volume=misc&image=13#top
 
+rocks.jpg
+https://www.pexels.com/photo/rock-in-between-grass-and-flower-368260/
+
+trees.jpg
+https://www.pexels.com/photo/scenic-view-of-mountain-1666021/
+
 tux.png
 https://commons.wikimedia.org/wiki/File:Tux.png
+
+waves.jpg
+https://www.pexels.com/photo/ocean-wave-at-blue-hour-1330219/

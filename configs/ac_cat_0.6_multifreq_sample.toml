@@ -4,7 +4,7 @@ name = "ac_cat_0.6_multfreq_sample3"
 [diffbem]
 cluster_size = 128
 radius_factor = 1.5
-freq_bands = [1000, 1250, 1600, 1600, 2000, 2500, 3150]
+freq_bands = [800, 1000, 1250, 1600, 2000, 2500, 3150]
 n_freqs = 1
 approx_ACA_tol = 1e-5
 Q_ACA_tol = 1e-5
