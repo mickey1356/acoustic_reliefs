@@ -130,7 +130,7 @@ DIM_H = 0.15
 ESIZE = 0.02
 NDIV = 0
 
-ITERS = 50
+ITERS = 500
 VMAX = 0.07
 BORDER = 2
 
@@ -141,7 +141,7 @@ RD_RES = (3 * 128, 2 * 128)
 NAME = "waves_32"
 
 WEIGHTS = {
-    "ac_wt": 0,
+    "ac_wt": 7,
     "cl_wt": 5,
     "sm_wt": 15,
     "ba_wt": 1,
@@ -255,8 +255,7 @@ def main():
     for it in pbar:
         opt.zero_grad()
 
-        # set frequency band
-        diffbem.set_band(sampled_freqs[it])
+        # for tracking purposes
         f = sampled_freqs[it]
 
         # pad the edges to force borders to be 0
@@ -274,11 +273,13 @@ def main():
         all_grad = np.zeros_like(hfield)
         if WEIGHTS["ac_wt"] != 0:
             for mesh_idx, (sp, se, sdp, sdpi, sduv, sdb, borders, six, siz) in enumerate(small_meshes):
-                # print(borders, six, siz)
+                # set the frequency band
+                sdb.set_band(sampled_freqs[it])
+
                 # figure out which part of the large heightmap needs to be extracted
                 shf = hfield[siz * RES_Z : (siz + 1) * RES_Z, six * RES_X : (six + 1) * RES_X]
                 ac_v, ac_g = acoustic_gradient(shf, sdb, sduv)
-                print(ac_g.shape)
+
                 # the ac_v technically doesn't make any sense here
                 tracker_dict["ac_v"][it] += ac_v / (NUM_W * NUM_B)
                 all_grad[siz * RES_Z : (siz + 1) * RES_Z, six * RES_X : (six + 1) * RES_X] = ac_g.detach().cpu().numpy()
