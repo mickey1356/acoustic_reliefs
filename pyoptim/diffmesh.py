@@ -16,7 +16,7 @@ BASE_SCENE = {
     },
     "emitter": {
         "type": "envmap",
-        "filename": "test-data/envmaps/hallstatt4_hd.hdr",
+        "filename": "test-data/envmaps/evening_sun.hdr",
         "scale": 1,
         # "filename": "test-data/envmaps/mitsuba_interior.exr",
         # "scale": 1,
