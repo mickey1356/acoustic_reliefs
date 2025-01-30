@@ -1,5 +1,3 @@
-import tomlkit, os, sys, pickle
-import glob
 
 import numpy as np
 import cv2
@@ -71,33 +69,53 @@ def normalize_gradients(grad, edge=0):
     else:
         return g / norm
 
+
 CAM_POS = [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]
-
-ADD_SUBDIVS = 1
 DEVICE = "cuda"
+SEED = 42
+
+# for the large optim, we tile multiple 0.6 x 0.6 diffusers each with 128x128 hfields
+NUM_W = 3
+NUM_B = 2
+RES_X = 128
+RES_Z = 128
+DIM_W = 0.6
+DIM_B = 0.6
+DIM_H = 0.15
+
+ESIZE = 0.02
+NDIV = 1
+ADD_DIV = 1
+
 ITERS = 50
-RG_WT = 5 # original 2.5
+VMAX = 0.07
+BORDER = 2
 
-def main(folder):
+CAM_RAD = 2.5
+TGT_FNAME = "test-data/images/landscape2.jpg"
+RD_RES = (3 * 256, 2 * 256)
 
-    configfile = glob.glob(os.path.join(folder, "*.toml"))[0]
-    hfieldfile = os.path.join(folder, "hfield.npy")
+NAME = "landscape2"
+INIT_HFIELD = "outputs/large/landscape2/hfield.npy"
 
-    # get base dim of cuboid
-    with open(configfile, "rb") as f:
-        config = tomlkit.load(f)
+WEIGHTS = {
+    "cl_wt": 5,
+    "sm_wt": 15,
+    "ba_wt": 1,
+    "ng_wt": 2,
+    "rg_wt": 5,
+}
+VW_WEIGHTS = [7, 2, 2, 2, 2]
 
-    esize = config["dimensions"]["esize"]
-    w = config["dimensions"]["w"]
-    b = config["dimensions"]["b"]
-    h = config["dimensions"]["h"]
-    Ps, Es = mesher.box_mesher(esize, w, b, h)
 
+def main():
+    # get the large mesh
+    Ps, Es = mesher.box_mesher(ESIZE, NUM_W * DIM_W, NUM_B * DIM_B, DIM_H)
     diff_pts_idx = np.where(np.isclose(Ps[:, 1], np.max(Ps[:, 1])))[0]
     diff_Ps = Ps[diff_pts_idx]
 
     # subdivide top faces if needed
-    subdiv_top = config["dimensions"].get("subdiv_top", 0) + ADD_SUBDIVS
+    subdiv_top = NDIV + ADD_DIV
     if subdiv_top > 0:
         top_Es_idx = np.where(np.all(np.isin(Es, diff_pts_idx), axis=1))[0]
         Ps, Es = mesher.face_subdivision(Ps, Es, top_Es_idx, subdiv_top)
@@ -109,65 +127,45 @@ def main(folder):
     x_min, y_min, z_min = np.min(Ps, axis=0)
     diff_uvs = dm.rect_points_to_uv(diff_Ps, x_min, x_max, z_min, z_max)
 
-    # load the initial heightfield
-    edge_border = config["image"]["edge_border"]
-    cam_rad = config["image"].get("cam_rad", 1)
-    hfield = np.load(hfieldfile)
+    # init hfield
+    hfield = np.load(INIT_HFIELD)
 
     # remove the border
-    hfield = hfield[edge_border:-edge_border, edge_border:-edge_border]
-    hfield_res, _ = hfield.shape
+    hfield = hfield[BORDER:-BORDER, BORDER:-BORDER]
+    hf_rh, hf_rw = hfield.shape
 
     # use a higher resolution heightfield
-    hfield_res = hfield_res * (2 ** ADD_SUBDIVS)
+    mult = (2 ** ADD_DIV)
 
     # upsample the original heightfield
-    n_hfield = cv2.resize(hfield, (hfield_res, hfield_res))
-    
+    n_hfield = cv2.resize(hfield, (mult * hf_rw, mult * hf_rh))
+
     # initialize diffmesh (for mitsuba renderer)
     semantic_loss = losses.ImgImgCLIPLoss()
-    tgt_fname = config["optimization"]["tgt_fname"]
-    diffmesh = dm.ImageDiffMesh(Ps, Es, tgt_fname, semantic_loss)
+    diffmesh = dm.ImageDiffMesh(Ps, Es, TGT_FNAME, semantic_loss)
 
-    tgt = H.read_image(tgt_fname, hfield_res + 2 * edge_border, hfield_res + 2 * edge_border, format="L")
+    # for texture clip loss
+    tgt = H.read_image(TGT_FNAME, mult * hf_rw + 2 * BORDER, mult * hf_rh + 2 * BORDER, format="L")
     tgt_img = np.stack([tgt, tgt, tgt], axis=2)
     tgt_tensor = torch.from_numpy(tgt_img).permute(2, 0, 1).unsqueeze(0).to(DEVICE)
 
     # set up torch optim
     hfield_torch = torch.from_numpy(n_hfield).to(DEVICE)
-    init_nhfield = preprocess_tex(hfield_torch, edge_border)
+    init_nhfield = preprocess_tex(hfield_torch, BORDER)
 
     # set up optimizer
     hfield_torch.requires_grad = True
     opt = torch.optim.Adam([hfield_torch], lr=1e-3)
 
-    # weights from the config file
-    weights = {
-        "cl_wt": config["optimization"].get("cl_wt", 3),
-        "sm_wt": config["optimization"].get("sm_wt", 10),
-        "ba_wt": config["optimization"].get("ba_wt", 0.5),
-        "ng_wt": config["optimization"].get("ng_wt", 0.5),
-        "rg_wt": RG_WT
-    }
-
-    vw_wts = config["optimization"].get("vw_wts", [3, 1, 1, 1, 1])
-    for i, w in enumerate(vw_wts):
-        weights[f"vw_{i}_wt"] = w
-
-    vmax = config["optimization"].get("vmax", -1)
-    if vmax <= 0:
-        vmax = None
+    # weights
+    for i, w in enumerate(VW_WEIGHTS):
+        WEIGHTS[f"vw_{i}_wt"] = w
 
     tracker_dict = { "last_iter": -1 }
-    for wt_lbl in weights:
+    for wt_lbl in WEIGHTS:
         l = wt_lbl[:-3]
         tracker_dict[f"{l}_v"] = 0
-        tracker_dict[f"{l}_g"] = 0
-
-    # set directories
-    out_fname = os.path.join(config["out_folder"], "hres", config["name"])
-    os.makedirs(out_fname, exist_ok=True)
-    os.makedirs(os.path.join(out_fname, "checkpoints"), exist_ok=True)
+        tracker_dict[f"{l}_g"] = np.zeros(shape=hfield_torch.shape)
 
 
     pbar = tqdm.trange(ITERS, dynamic_ncols=True)
@@ -175,7 +173,7 @@ def main(folder):
         opt.zero_grad()
 
         # pad the edges to force borders to be 0
-        hfield_full = preprocess_tex(hfield_torch, edge_border)
+        hfield_full = preprocess_tex(hfield_torch, BORDER)
 
         custom_loss = 0
         custom_grads = torch.zeros_like(hfield_torch).to(DEVICE)
@@ -183,20 +181,14 @@ def main(folder):
         # rendered view gradients
         hfield = hfield_full.cpu().detach().numpy()
         for i, (el, az) in enumerate(CAM_POS):
-            vw_v, vw_g = diffmesh.gradient(hfield, el, az, radius=cam_rad, res=512)
+            vw_v, vw_g = diffmesh.gradient(hfield, el, az, radius=CAM_RAD, resx=RD_RES[0], resy=RD_RES[1])
             # vw_g is the full gradient, but we only care about the middle section
             tracker_dict[f"vw_{i}_v"] = vw_v
-            tracker_dict[f"vw_{i}_g"] = vw_g[edge_border:-edge_border, edge_border:-edge_border].detach().cpu().numpy()
+            tracker_dict[f"vw_{i}_g"] = vw_g[BORDER:-BORDER, BORDER:-BORDER].detach().cpu().numpy()
 
-        # call backward on indidivual losses for individual gradients
         hfield_torch.grad = None
-        # if vmax:
-        #     hfield_clip = (hfield_full + vmax) / (2 * vmax)
-        # else:
-        #     hfield_clip = hfield_full
         cl_v = texture_cliploss(hfield_full, tgt_tensor, semantic_loss)
         cl_v.backward(retain_graph=True)
-
         cl_g = hfield_torch.grad
         tracker_dict["cl_v"] = cl_v.item()
         tracker_dict["cl_g"] = cl_g.detach().cpu().numpy()
@@ -215,14 +207,13 @@ def main(folder):
         tracker_dict["ng_v"] = ng_v.item()
         tracker_dict["ng_g"] = ng_g.detach().cpu().numpy()
 
-        if vmax:
-            hfield_torch.grad = None
-            ba_v = barrier_loss(hfield_full, vmax)
-            ba_v.backward(retain_graph=True)
-            ba_g = hfield_torch.grad
-            tracker_dict["ba_v"] = ba_v.item()
-            tracker_dict["ba_g"] = ba_g.detach().cpu().numpy()
-        
+        hfield_torch.grad = None
+        ba_v = barrier_loss(hfield_full, VMAX)
+        ba_v.backward(retain_graph=True)
+        ba_g = hfield_torch.grad
+        tracker_dict["ba_v"] = ba_v.item()
+        tracker_dict["ba_g"] = ba_g.detach().cpu().numpy()
+
         hfield_torch.grad = None
         rg_v = regularization_loss(hfield_full, init_nhfield)
         rg_v.backward(retain_graph=True)
@@ -230,70 +221,30 @@ def main(folder):
         tracker_dict["rg_v"] = rg_v.item()
         tracker_dict["rg_g"] = rg_g.detach().cpu().numpy()
 
-        # for wt_lbl in weights:
-        #     l = wt_lbl[:-3]
-        #     print(l, np.linalg.norm(tracker_dict[f"{l}_g"]))
-
-        # weight gradients and sum
-        for wt_lbl in weights:
+        for wt_lbl in WEIGHTS:
             l = wt_lbl[:-3]
-            custom_loss += weights[wt_lbl] * tracker_dict[f"{l}_v"]
+            custom_loss += WEIGHTS[wt_lbl] * tracker_dict[f"{l}_v"]
 
             grad = torch.from_numpy(tracker_dict[f"{l}_g"]).to(DEVICE)
             grad = normalize_gradients(grad)
-            custom_grads += weights[wt_lbl] * grad
+            custom_grads += WEIGHTS[wt_lbl] * grad
 
         hfield_torch.grad = custom_grads
         opt.step()
 
-        # clamp the vmax
-        if vmax:
-            with torch.no_grad():
-                hfield_torch.clamp_(-vmax, vmax)
+        with torch.no_grad():
+            hfield_torch.clamp_(-VMAX, VMAX)
 
-        pbar.set_postfix_str(f"Loss: {custom_loss:.6f}")
-
-        if ((1 + it) % 5) == 0:
-            with torch.no_grad():
-                save_hfield_torch = preprocess_tex(hfield_torch, edge_border)
-                save_hfield = save_hfield_torch.cpu().detach().numpy()
-                rendered_imgs = [diffmesh.render(save_hfield, *cam, radius=cam_rad, res=512) for cam in CAM_POS]
-                H.save_images(f"{out_fname}/checkpoints/renders_{1+it}.png", rendered_imgs + [save_hfield], auto_grid=True)
-
-    
     with torch.no_grad():
-        hfield_torch = preprocess_tex(hfield_torch, edge_border)
+        hfield_torch = preprocess_tex(hfield_torch, BORDER)
         hfield = hfield_torch.cpu().detach().numpy()
-        np.save(f"{out_fname}/hfield.npy", hfield)
-        rendered_imgs = [diffmesh.render(hfield, *cam, radius=cam_rad, res=512) for cam in CAM_POS]
-        H.save_images(f"{out_fname}/renders.png", rendered_imgs + [hfield], auto_grid=True)
-        
+        rendered_imgs = [diffmesh.render(hfield, *cam, radius=CAM_RAD, resx=RD_RES[0], resy=RD_RES[1]) for cam in CAM_POS]
         heights = eval_uv(hfield, diff_uvs)
         Ps[diff_pts_idx, 1] += heights
-        H.save_mesh(f"{out_fname}/{config["name"]}.obj", Ps, Es)
+        np.save(f"outputs/large/{NAME}/hfield_hres.npy", hfield)
+        H.save_images(f"outputs/large/{NAME}/hres_renders.png", rendered_imgs + [hfield], auto_grid=True)
+        H.save_mesh(f"outputs/large/{NAME}/hres_mesh.obj", Ps, Es)
 
 
 if __name__ == "__main__":
-    fdrs = [
-        # "outputs/ac_cat_0.02_norm",
-        # "outputs/ac_cat_0.6_multfreq_sample2",
-        # "outputs/ac_cat_0.9_multifreq_sample",
-        # "outputs/ac_corgi_0.6_multfreq_sample",
-        # "outputs/ac_corgi_0.9_multfreq_sample",
-        # "outputs/ac_matterhorn_0.6_multfreq_sample2",
-        # "outputs/ac_matterhorn2_0.9_multifreq_sample",
-        # "outputs/ac_merlion_0.6_emap2",
-        # "outputs/ac_trees_0.6",
-        # "outputs/ac_waves_square2_0.9_multifreq_sample",
-        # "outputs/ac_merlion_0.9",
-        # "outputs/ac_mountains_0.9_multifreq_sample",
-        # "outputs/ac_peppers_0.9_multifreq_sample",
-        # "outputs/ac_fuji_0.9_multifreq_sample",
-        # "outputs/ac_trees_0.9",
-        # "outputs/ac_bunny_64",
-        "outputs/io_trees_0.6_2"
-    ]
-
-    for folder in fdrs:
-        print(folder)
-        main(folder)
+    main()
