@@ -7,7 +7,7 @@ ALL_FREQ_BANDS = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 
 ONE_SIXTH_FREQ_BANDS = [106, 119, 133, 150, 168, 188, 211, 237, 266, 299, 335, 376, 422, 473, 530, 600, 670, 750, 840, 940, 1060, 1190, 1330, 1500, 1680, 1880, 2110, 2370, 2660, 2990, 3350, 3760, 4220]
 
 def pipeline(mesh_fname, save_name=None, silent=False, src_pt=[0, 100, 0], lr=50):
-    diffbem = ac3d.DiffBEM(64, 1.5, [-1], 3, 1e-5, 1e-5, 1e-5, np.array(src_pt), lr, 5, False)
+    diffbem = ac3d.DiffBEM(128, 1.5, [-1], 3, 1e-5, 1e-5, 1e-5, np.array(src_pt), lr, 5, False)
     diffbem.silent = silent
     Ps, Es = H.read_mesh(mesh_fname)
     Ps, Es = diffbem.set_mesh(Ps, Es)
@@ -20,7 +20,7 @@ def pipeline(mesh_fname, save_name=None, silent=False, src_pt=[0, 100, 0], lr=50
 
 def rect_pipeline(dim, esize, save_name=None, silent=False, ht=0.15, src_pt=[0, 100, 0], lr=50):
     Ps, Es = mesher.box_mesher(esize, w=dim, b=dim, h=ht)
-    diffbem = ac3d.DiffBEM(64, 1.5, [-1], 3, 1e-5, 1e-5, 1e-5, np.array(src_pt), lr, 5, False)
+    diffbem = ac3d.DiffBEM(128, 1.5, [-1], 3, 1e-5, 1e-5, 1e-5, np.array(src_pt), lr, 5, False)
     diffbem.silent = silent
     Ps, Es = diffbem.set_mesh(Ps, Es)
     values = []

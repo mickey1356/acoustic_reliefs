@@ -128,17 +128,17 @@ DIM_B = 0.6
 DIM_H = 0.15
 
 ESIZE = 0.02
-NDIV = 0
+NDIV = 1
 
 ITERS = 500
 VMAX = 0.07
 BORDER = 2
 
 CAM_RAD = 2.5
-TGT_FNAME = "test-data/images/waves_32.jpg"
+TGT_FNAME = "test-data/images/landscape2.jpg"
 RD_RES = (3 * 128, 2 * 128)
 
-NAME = "waves_32"
+NAME = "landscape2"
 
 WEIGHTS = {
     "ac_wt": 7,
@@ -347,10 +347,11 @@ def main():
                 hfield = preprocess_tex(hfield_torch, BORDER).cpu().detach().numpy()
                 imgs = [diffmesh.render(hfield, *cam, radius=CAM_RAD, resx=RD_RES[0], resy=RD_RES[1]) for cam in CAM_POS]
                 heights = eval_uv(hfield, large_diff_uvs)
-                large_Ps[large_diff_pts_idx, 1] += heights
+                save_large_Ps = large_Ps.copy()
+                save_large_Ps[large_diff_pts_idx, 1] += heights
                 np.save(f"outputs/large/{NAME}/checkpoints/hf_{it+1}.npy", hfield)
                 H.save_images(f"outputs/large/{NAME}/checkpoints/rd_{it+1}.png", imgs + [hfield], auto_grid=True)
-                H.save_mesh(f"outputs/large/{NAME}/checkpoints/ms_{it+1}.obj", large_Ps, large_Es)
+                H.save_mesh(f"outputs/large/{NAME}/checkpoints/ms_{it+1}.obj", save_large_Ps, large_Es)
 
         # save the tracker dict every iteration (overwrites itself)
         tracker_dict["last_iter"] = it
