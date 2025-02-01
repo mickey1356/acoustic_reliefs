@@ -72,10 +72,11 @@ def neg_relu(tex_torch):
     loss = torch.mean(torch.nn.functional.relu(-tex_torch))
     return loss
 
-def barrier_loss(tex_torch, vmax, buffer=1e-3):
+def barrier_loss(tex_torch, vmax, vmin, buffer=1e-3):
     # add a small buffer to avoid infs
-    vl = vmax + buffer
-    loss = -torch.mean(torch.minimum(torch.log(tex_torch + vl), torch.log(vl - tex_torch)))
+    vt = vmax + buffer
+    vb = vmin + buffer
+    loss = -torch.mean(torch.minimum(torch.log(tex_torch + vb), torch.log(vt - tex_torch)))
     return loss
 
 def regularization_loss(tex_torch, initial):
@@ -118,7 +119,6 @@ FREQS = [800, 1000, 1250, 1600, 2000, 2500, 3150]
 np.random.seed(SEED)
 
 # for the large optim, we tile multiple 0.6 x 0.6 diffusers each with 128x128 hfields
-
 NUM_W = 3
 NUM_B = 2
 RES_X = 128
@@ -131,14 +131,15 @@ ESIZE = 0.02
 NDIV = 1
 
 ITERS = 500
-VMAX = 0.07
+VMAX = 0.3
+VMIN = 0.05
 BORDER = 2
 
 CAM_RAD = 2.5
-TGT_FNAME = "test-data/images/landscape2.jpg"
+TGT_FNAME = "test-data/images/waves_32.jpg"
 RD_RES = (3 * 128, 2 * 128)
 
-NAME = "landscape2"
+NAME = "waves_32_vmin"
 
 WEIGHTS = {
     "ac_wt": 7,
@@ -318,7 +319,7 @@ def main():
         tracker_dict["ng_g"][it] = ng_g.detach().cpu().numpy()
 
         hfield_torch.grad = None
-        ba_v = barrier_loss(hfield_full, VMAX)
+        ba_v = barrier_loss(hfield_full, VMAX, VMIN)
         ba_v.backward(retain_graph=True)
         ba_g = hfield_torch.grad
         tracker_dict["ba_v"][it] = ba_v.item()
@@ -338,7 +339,7 @@ def main():
 
         # clamp the vmax
         with torch.no_grad():
-            hfield_torch.clamp_(-VMAX, VMAX)
+            hfield_torch.clamp_(-VMIN, VMAX)
 
         pbar.set_postfix_str(f"Loss: {custom_loss:.6f} | Frequency: {f}")
 
