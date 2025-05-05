@@ -13,7 +13,7 @@
 #define SPEED_OF_SOUND 344.0
 #define EPSILON 1e-6
 
-#define APPROX_ACA_MAX_K 300
+#define APPROX_ACA_MAX_K 100
 #define Q_ACA_MAX_K 5000
 
 namespace bem3d {

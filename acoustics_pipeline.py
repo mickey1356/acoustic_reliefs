@@ -14,18 +14,20 @@ def pipeline(mesh_fname, save_name=None, silent=False, src_pt=[0, 100, 0], lr=50
     values = []
     for freq_band in ALL_FREQ_BANDS:
         values.append(diffbem.band_value(freq_band))
+        print(f"freq {freq_band} Hz done")
     if save_name:
         save(save_name, values)
     return values
 
-def rect_pipeline(dim, esize, save_name=None, silent=False, ht=0.15, src_pt=[0, 100, 0], lr=50):
-    Ps, Es = mesher.box_mesher(esize, w=dim, b=dim, h=ht)
+def rect_pipeline(dimw, dimb, esize, save_name=None, silent=False, ht=0.15, src_pt=[0, 100, 0], lr=50):
+    Ps, Es = mesher.box_mesher(esize, w=dimw, b=dimb, h=ht)
     diffbem = ac3d.DiffBEM(128, 1.5, [-1], 3, 1e-5, 1e-5, 1e-5, np.array(src_pt), lr, 5, False)
     diffbem.silent = silent
     Ps, Es = diffbem.set_mesh(Ps, Es)
     values = []
     for freq_band in ALL_FREQ_BANDS:
         values.append(diffbem.band_value(freq_band))
+        print(f"freq {freq_band} Hz done")
     if save_name:
         save(save_name, values)
     return values

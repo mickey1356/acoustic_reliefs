@@ -11,19 +11,40 @@ BASE_SCENE = {
     "type": "scene",
     "integrator": {
         "type": "direct_projective",
+        # "type": "prb_projective",
+        # "max_depth": 5,
         "sppi": 0,
         "hide_emitters": True,
     },
     "emitter": {
-        "type": "envmap",
-        "filename": "test-data/envmaps/evening_sun.hdr",
-        "scale": 1,
+        # "type": "envmap",
+        # "filename": "test-data/envmaps/evening_sun.hdr",
+        # "scale": 1,
         # "filename": "test-data/envmaps/mitsuba_interior.exr",
         # "scale": 1,
         # "filename": "test-data/envmaps/interior.exr",
         # "scale": 0.2,
-
+        # "type": "directional",
+        # "direction": [0, -1, 0],
+        # "irradiance": {
+        #     "type": "rgb",
+        #     "value": 2,
+        # }
+        "type": "point",
+        # "position": [0, 0.5, -0.866],
+        "position": [0, 1, 0],
+        "intensity": {
+            "type": "rgb",
+            "value": 1.5,
+        },
     },
+    # "emitter2": {
+    #     "type": "constant",
+    #     "radiance": {
+    #         "type": "rgb",
+    #         "value": 0.2,
+    #     }
+    # }
 }
 
 # helper class to perform differentiable rendering of a heightfield

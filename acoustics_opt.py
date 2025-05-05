@@ -245,6 +245,8 @@ def optim_proc(config):
         tracker_dict[f"{l}_v"] = np.zeros(iters)
         tracker_dict[f"{l}_g"] = np.zeros((iters, *hfield_torch.shape))
 
+    savelosses = []
+
     pbar = tqdm.trange(iters, dynamic_ncols=True)
     for it in pbar:
         opt.zero_grad()
@@ -348,6 +350,7 @@ def optim_proc(config):
         
         # print(f"iter {1+it}: {tl_loss.item():.6f} ({ac_v:.6f}/{ac_gm:.6f} - {rd_v:.6f}/{rd_gm:.6f} - {cl_v:.6f}/{cl_gm:.6f} - {sm_v:.6f}/{sm_gm:.6f} - {mh_v:.6f}/{mh_gm:.6f} - {ng_v:.6f}/{ng_gm:.6f})")
         pbar.set_postfix_str(f"Loss: {custom_loss:.6f} - Freq: {f}")
+        savelosses.append(custom_loss.item())
 
         if ((1 + it) % save_every) == 0:
             with torch.no_grad():
@@ -363,8 +366,8 @@ def optim_proc(config):
 
         # save the tracker dict every iteration (overwrites itself)
         tracker_dict["last_iter"] = it
-        with open(f"{out_fname}/tracker_dict.pkl", "wb") as f:
-            pickle.dump(tracker_dict, f)
+        # with open(f"{out_fname}/tracker_dict.pkl", "wb") as f:
+        #     pickle.dump(tracker_dict, f)
 
     with torch.no_grad():
         hfield_torch = preprocess_tex(hfield_torch, edge_border)
@@ -376,6 +379,15 @@ def optim_proc(config):
         heights = eval_uv(hfield, diff_uvs)
         Ps[diff_pts_idx, 1] += heights
         H.save_mesh(f"{out_fname}/mesh.obj", Ps, Es)
+    
+    # plot losses and save
+    import matplotlib.pyplot as plt
+    plt.plot(savelosses)
+    plt.xlabel("Iteration")
+    plt.ylabel("Loss")
+    plt.title("Losses")
+    plt.savefig(f"{out_fname}/losses.png")
+    plt.close()
 
 
 if __name__ == "__main__":
