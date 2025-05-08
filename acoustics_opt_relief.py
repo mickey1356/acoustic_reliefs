@@ -117,16 +117,17 @@ def optim_proc(config):
 
     weights = {
         "ac_wt": config["optimization"].get("ac_wt", 5),
-        "cl_wt": config["optimization"].get("cl_wt", 3),
+        # "cl_wt": config["optimization"].get("cl_wt", 3),
         "sm_wt": config["optimization"].get("sm_wt", 10),
         "ba_wt": config["optimization"].get("ba_wt", 0.5),
         "ng_wt": config["optimization"].get("ng_wt", 0.5),
         "rl_wt": config["optimization"].get("rl_wt", 3),
+        "ht_wt": 5
     }
 
-    vw_wts = config["optimization"].get("vw_wts", [3, 1, 1, 1, 1])
-    for i, w in enumerate(vw_wts):
-        weights[f"vw_{i}_wt"] = w
+    # vw_wts = config["optimization"].get("vw_wts", [3, 1, 1, 1, 1])
+    # for i, w in enumerate(vw_wts):
+    #     weights[f"vw_{i}_wt"] = w
 
     vmax = config["optimization"].get("vmax", -1)
     if vmax <= 0:
@@ -213,21 +214,24 @@ def optim_proc(config):
         # semantic_loss = losses.ImgImgPixelLoss()
 
         # initialize diffmesh (for mitsuba renderer)
-        diffmesh = dm.ImageDiffMesh(Ps, Es, tgt_fname, semantic_loss)
+        diffmesh = dm.DiffMesh(Ps, Es)
+        # diffmesh = dm.ImageDiffMesh(Ps, Es, tgt_fname, semantic_loss)
 
-        tgt = H.read_image(tgt_fname, hfield_res, hfield_res, format="L")
-        tgt_img = np.stack([tgt, tgt, tgt], axis=2)
-        tgt_tensor = torch.from_numpy(tgt_img).permute(2, 0, 1).unsqueeze(0).to(DEVICE)
-    
-    elif guidance_type in ["text", "text_only"]:
-        pass
-    
+        # tgt = H.read_image(tgt_fname, hfield_res, hfield_res, format="L")
+        # tgt_img = np.stack([tgt, tgt, tgt], axis=2)
+        # tgt_tensor = torch.from_numpy(tgt_img).permute(2, 0, 1).unsqueeze(0).to(DEVICE)
+        
     elif guidance_type in ["acoustics_only"]:
         diffmesh = dm.DiffMesh(Ps, Es)
 
     # set up torch optimization    
     # init with constant value
-    hfield_torch = torch.full((hfield_res - 2 * edge_border, hfield_res - 2 * edge_border), fill_value=init_val).to(DEVICE)
+    dim = hfield_res - 2 * edge_border
+    init_heights = H.read_image("test-data/reliefs/flowers_heights.png", w=dim, h=dim, format="L")
+    init_heights = (init_heights - np.min(init_heights)) / (np.max(init_heights) - np.min(init_heights)) * 2 * vmax - vmax
+    hfield_torch = torch.from_numpy(init_heights).to(DEVICE)
+    init_heights = hfield_torch.clone()
+    # hfield_torch = torch.full((hfield_res - 2 * edge_border, hfield_res - 2 * edge_border), fill_value=init_val).to(DEVICE)
     
     # set up optimizer
     hfield_torch.requires_grad = True
@@ -276,26 +280,34 @@ def optim_proc(config):
 
 
         # these guidance types use the diff mesh 
-        if guidance_type in ["image_only", "text_only", "image", "text"]:
-            # rendered view gradients
-            for i, (el, az) in enumerate(CAM_POS):
-                vw_v, vw_g = diffmesh.gradient(hfield, el, az, radius=cam_rad)
-                # vw_g is the full gradient, but we only care about the middle section
-                tracker_dict[f"vw_{i}_v"][it] = vw_v
-                tracker_dict[f"vw_{i}_g"][it] = vw_g[edge_border:-edge_border, edge_border:-edge_border].detach().cpu().numpy()
+        # if guidance_type in ["image_only", "text_only", "image", "text"]:
+        #     # rendered view gradients
+        #     for i, (el, az) in enumerate(CAM_POS):
+        #         vw_v, vw_g = diffmesh.gradient(hfield, el, az, radius=cam_rad)
+        #         # vw_g is the full gradient, but we only care about the middle section
+        #         tracker_dict[f"vw_{i}_v"][it] = vw_v
+        #         tracker_dict[f"vw_{i}_g"][it] = vw_g[edge_border:-edge_border, edge_border:-edge_border].detach().cpu().numpy()
 
-            # call backward on indidivual losses for individual gradients
-            hfield_torch.grad = None
-            # if vmax:
-            #     hfield_clip = (hfield_full + vmax) / (2 * vmax)
-            # else:
-            #     hfield_clip = hfield_full
-            cl_v = texture_cliploss(hfield_full, tgt_tensor, semantic_loss)
-            cl_v.backward(retain_graph=True)
+        #     # call backward on indidivual losses for individual gradients
+        #     hfield_torch.grad = None
+        #     # if vmax:
+        #     #     hfield_clip = (hfield_full + vmax) / (2 * vmax)
+        #     # else:
+        #     #     hfield_clip = hfield_full
+        #     cl_v = texture_cliploss(hfield_full, tgt_tensor, semantic_loss)
+        #     cl_v.backward(retain_graph=True)
 
-            cl_g = hfield_torch.grad
-            tracker_dict["cl_v"][it] = cl_v.item()
-            tracker_dict["cl_g"][it] = cl_g.detach().cpu().numpy()
+        #     cl_g = hfield_torch.grad
+        #     tracker_dict["cl_v"][it] = cl_v.item()
+        #     tracker_dict["cl_g"][it] = cl_g.detach().cpu().numpy()
+
+        # keep hfield close to the initial heightfield
+        hfield_torch.grad = None
+        ht_v = torch.mean((hfield_torch - init_heights).square())
+        ht_v.backward(retain_graph=True)
+        ht_g = hfield_torch.grad
+        tracker_dict["ht_v"][it] = ht_v.item()
+        tracker_dict["ht_g"][it] = ht_g.detach().cpu().numpy()
 
 
         hfield_torch.grad = None
@@ -392,7 +404,8 @@ def optim_proc(config):
 
 
 if __name__ == "__main__":
-    configfile = "configs/base.toml" if len(sys.argv) == 1 else sys.argv[1]
+    # configfile = "configs/base.toml" if len(sys.argv) == 1 else sys.argv[1]
+    configfile = "configs/ptlight_relief.toml"
 
     print(f"config: {configfile}")
     with open(configfile, "rb") as f:

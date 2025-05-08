@@ -121,7 +121,18 @@ class ImgImgLPIPSLoss(nn.Module):
         x = img.float().to(self.device)
         y = tgt.float().to(self.device)
 
-        return self.lpip(x, y)
+        return self.lpip(x, y).flatten()
+
+class ImgImgPixelLoss(nn.Module):
+    def __init__(self, device="cuda"):
+        super().__init__()
+        self.device = device
+    
+    def forward(self, img, tgt):
+        x = img.float().to(self.device)
+        y = tgt.float().to(self.device)
+
+        return torch.mean(torch.square(x - y))
     
 class SDSLoss(nn.Module):
     pass
