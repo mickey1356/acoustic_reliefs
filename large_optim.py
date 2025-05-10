@@ -136,19 +136,20 @@ VMIN = 0.05
 BORDER = 2
 
 CAM_RAD = 2.5
-TGT_FNAME = "test-data/images/waves_32.jpg"
+TGT_FNAME = "test-data/images/mountains4.jpg"
 RD_RES = (3 * 128, 2 * 128)
 
-NAME = "waves_32_vmin"
+NAME = "ac_large"
 
 WEIGHTS = {
     "ac_wt": 7,
-    "cl_wt": 5,
-    "sm_wt": 15,
+    "cl_wt": 0,
+    "sm_wt": 17,
     "ba_wt": 1,
     "ng_wt": 2,
 }
 VW_WEIGHTS = [7, 2, 2, 2, 2]
+VW_WEIGHTS = [0, 0, 0, 0, 0]
 
 
 def main():

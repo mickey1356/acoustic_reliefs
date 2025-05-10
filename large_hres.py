@@ -43,10 +43,11 @@ def neg_relu(tex_torch):
     loss = torch.mean(torch.nn.functional.relu(-tex_torch))
     return loss
 
-def barrier_loss(tex_torch, vmax, buffer=1e-3):
+def barrier_loss(tex_torch, vmax, vmin, buffer=1e-3):
     # add a small buffer to avoid infs
-    vl = vmax + buffer
-    loss = -torch.mean(torch.minimum(torch.log(tex_torch + vl), torch.log(vl - tex_torch)))
+    vt = vmax + buffer
+    vb = vmin + buffer
+    loss = -torch.mean(torch.minimum(torch.log(tex_torch + vb), torch.log(vt - tex_torch)))
     return loss
 
 def regularization_loss(tex_torch, initial):
@@ -88,19 +89,20 @@ NDIV = 1
 ADD_DIV = 1
 
 ITERS = 50
-VMAX = 0.07
+VMAX = 0.3
+VMIN = 0.05
 BORDER = 2
 
 CAM_RAD = 2.5
-TGT_FNAME = "test-data/images/landscape2.jpg"
+TGT_FNAME = "test-data/images/mountains4.jpg"
 RD_RES = (3 * 256, 2 * 256)
 
-NAME = "landscape2"
-INIT_HFIELD = "outputs/large/landscape2/hfield.npy"
+NAME = "mountains4"
+INIT_HFIELD = "outputs/large/mountains4/hfield.npy"
 
 WEIGHTS = {
     "cl_wt": 5,
-    "sm_wt": 15,
+    "sm_wt": 17,
     "ba_wt": 1,
     "ng_wt": 2,
     "rg_wt": 5,
@@ -208,7 +210,7 @@ def main():
         tracker_dict["ng_g"] = ng_g.detach().cpu().numpy()
 
         hfield_torch.grad = None
-        ba_v = barrier_loss(hfield_full, VMAX)
+        ba_v = barrier_loss(hfield_full, VMAX, VMIN)
         ba_v.backward(retain_graph=True)
         ba_g = hfield_torch.grad
         tracker_dict["ba_v"] = ba_v.item()
@@ -233,7 +235,7 @@ def main():
         opt.step()
 
         with torch.no_grad():
-            hfield_torch.clamp_(-VMAX, VMAX)
+            hfield_torch.clamp_(-VMIN, VMAX)
 
     with torch.no_grad():
         hfield_torch = preprocess_tex(hfield_torch, BORDER)

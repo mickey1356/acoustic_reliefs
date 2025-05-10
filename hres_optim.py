@@ -292,7 +292,8 @@ if __name__ == "__main__":
         # "outputs/ac_trees_0.9",
         # "outputs/ac_bunny_64",
         # "outputs/io_trees_0.6_2"
-        "outputs/ptlight_stripes",
+        "outputs/ptlight_patterns",
+        "outputs/ptlight_waves_abstract",
     ]
 
     for folder in fdrs:

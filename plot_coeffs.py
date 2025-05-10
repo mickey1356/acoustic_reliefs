@@ -30,7 +30,8 @@ sixth_freqs = [106, 119, 133, 150, 168, 188, 211, 237, 266, 299, 335, 376, 422, 
 # to_plot = ["rect_0.9_e0.02", "ac_0.02_0.9_multifreq_sample", "ac_fuji_0.9_multifreq_sample", "ac_bunny_0.9_multifreq_sample", "ac_matterhorn_0.9_multifreq_sample", "ac_peppers_0.9_multifreq_sample", "ac_mountains_0.9_multifreq_sample", "ac_mountains2_0.9_multifreq_sample", "ac_mountains3_0.9_multifreq_sample", "ac_matterhorn2_0.9_multifreq_sample", "ac_waves_square_0.9_multifreq_sample", "ac_waves2_0.9_multifreq_sample", "ac_fuji_0.9_multifreq_sample", "ac_corgi_0.9_multfreq_sample"]
 # to_plot = ["rect_0.6_e0.02", "ac_cat_0.6_multifreq_sample2", "hres_cat_0.6", "cat_rg5", "cat_rg10"]
 # to_plot = ["bunny18", "bunny48", "ac_bunny_64"]
-to_plot = ["rect_0.6", "corgi_0.6", "ac_0.6",]
+# to_plot = ["rect_1.8_1.2", "waves_L_hres", "landscape_L_hres", "mountains_L_hres", "acoustics_L"]
+to_plot = ["rect_0.6", "prd_l", "ptlight_cat", "ptlight_flowers", "ptlight_flowers_abstract", "ptlight_matterhorn2", "ptlight_merlion", "ptlight_trees", "ptlight_windows_bloom"]
 # to_plot = ["cat_0.6"]
 
 ref = None
