@@ -222,7 +222,7 @@ def optim_proc(config):
         tgt_tensor = torch.from_numpy(tgt_img).permute(2, 0, 1).unsqueeze(0).to(DEVICE)
     
     elif guidance_type in ["text", "text_only"]:
-        pass
+        raise "NotImplementedError"
     
     elif guidance_type in ["acoustics_only"]:
         diffmesh = dm.DiffMesh(Ps, Es)
