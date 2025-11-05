@@ -170,13 +170,15 @@ def optim_proc(config):
         freq_weights = 1 / np.array(diffbem_cfg["freq_bands"])
         freq_weights /= np.sum(freq_weights)
         sampled_freqs = np.random.choice(diffbem_cfg["freq_bands"], size=(iters, ), p=freq_weights)
+    # print(sampled_freqs)
 
     # generate mesh (0.6 x 0.6 x 0.15 [w x b x h, default])
     esize = config["dimensions"]["esize"]
     w = config["dimensions"]["w"]
     b = config["dimensions"]["b"]
     h = config["dimensions"]["h"]
-    Ps, Es = mesher.box_mesher(esize, w, b, h)
+    # Ps, Es = mesher.box_mesher(esize, w, b, h)
+    Ps, Es = mesher.generate_base_mesh(w, h, b, 30, 7, 30)
 
     # the points we want to optimize are those at the top of the box
     diff_pts_idx = np.where(np.isclose(Ps[:, 1], np.max(Ps[:, 1])))[0]
@@ -237,7 +239,7 @@ def optim_proc(config):
     # imgs = [diffmesh.render(hfield, e, a, radius=cam_rad) for e, a in CAM_POS]
     # H.save_images("t_init.png", imgs, auto_grid=True)
     # imgs = [diffmesh.check_ref(e, a, radius=cam_rad) for e, a in CAM_POS]
-    # H.save_images("t_ref.png", imgs, auto_grid=True)
+    # H.save_images("t_ref.png", [imgs[0]], auto_grid=True)
     # exit()
 
     tracker_dict = { "last_iter": -1 }
@@ -351,7 +353,7 @@ def optim_proc(config):
         
         # print(f"iter {1+it}: {tl_loss.item():.6f} ({ac_v:.6f}/{ac_gm:.6f} - {rd_v:.6f}/{rd_gm:.6f} - {cl_v:.6f}/{cl_gm:.6f} - {sm_v:.6f}/{sm_gm:.6f} - {mh_v:.6f}/{mh_gm:.6f} - {ng_v:.6f}/{ng_gm:.6f})")
         pbar.set_postfix_str(f"Loss: {custom_loss:.6f} - Freq: {f}")
-        savelosses.append(custom_loss.item())
+        savelosses.append(custom_loss)
 
         if ((1 + it) % save_every) == 0:
             with torch.no_grad():

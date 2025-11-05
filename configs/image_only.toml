@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "io_ptlight_bloom_clip"
+name = "ptlight_matterhorn2_image_only"
 
 [diffbem]
 cluster_size = 128
@@ -31,7 +31,7 @@ cam_rad = 1
 guidance_type = "image"
 
 # for image optim
-tgt_fname = "test-data/images/windows_bloom.jpg"
+tgt_fname = "test-data/images/matterhorn2.jpg"
 # texture clip loss
 cl_wt = 5
 # renderer weights [(np.pi / 2, 0)] + [(np.pi / 4, i / 2 * np.pi) for i in range(4)]

@@ -68,6 +68,86 @@ def box_mesher(esize=0.01, w=0.6, b=0.6, h=0.15):
     verts, faces = box(w, b, h)
     return mesh_surface(verts, faces, esize)
 
+def cylinder_mesher(esize=0.01, N=64, r=0.3, h=0.15):
+    # generate a cylinder along the y-axis
+    verts = []
+    faces = []
+    for i in range(N):
+        theta = 2 * np.pi * i / N
+        x = r * np.cos(theta)
+        z = -r * np.sin(theta)
+        verts.append((x, 0, z))
+        verts.append((x, h, z))
+        faces.append([i * 2, ((i + 1) % N) * 2, ((i + 1) % N) * 2 + 1, i * 2 + 1])
+    # add the caps
+    faces.append(list(reversed([i * 2 for i in range(N)])))
+    faces.append([i * 2 + 1 for i in range(N)])
+    return mesh_surface(verts, faces, esize)
+
+def generate_base_mesh(w, h, b, Nx, Ny, Nz):
+    """
+    Generates a subdivided cube mesh.
+
+    The cube has dimensions (width=w, height=h, breadth=b) and each face is 
+    subdivided into Nx, Ny, and Nz segments along the X, Y, and Z axes, respectively.
+
+    Args:
+        w (float): Width of the cube along the X-axis.
+        h (float): Height of the cube along the Y-axis.
+        b (float): Breadth (depth) of the cube along the Z-axis.
+        Nx (int): Number of subdivisions along the X-axis.
+        Ny (int): Number of subdivisions along the Y-axis.
+        Nz (int): Number of subdivisions along the Z-axis.
+
+    Returns:
+        vertices (V, 3): Array of vertex coordinates
+        faces (F, 3): Array of face indices
+    """
+    vertices = []
+    faces = []
+
+    dx = w / Nx
+    dy = h / Ny
+    dz = b / Nz
+
+    def add_face_grid(start, u_vec, v_vec, nu, nv, normal_sign):
+        base_index = len(vertices)
+        for j in range(nv + 1):
+            for i in range(nu + 1):
+                x = start[0] + i * u_vec[0] + j * v_vec[0]
+                y = start[1] + i * u_vec[1] + j * v_vec[1]
+                z = start[2] + i * u_vec[2] + j * v_vec[2]
+                vertices.append((x, y, z))
+        for j in range(nv):
+            for i in range(nu):
+                a = base_index + j * (nu + 1) + i
+                b = a + 1
+                c = a + (nu + 1)
+                d = c + 1
+                if normal_sign > 0:
+                    faces.append((a, c, d))
+                    faces.append((a, d, b))
+                else:
+                    faces.append((a, d, c))
+                    faces.append((a, b, d))
+
+    # +Z (top face)
+    add_face_grid(start=(-w/2, 0, -b/2), u_vec=(dx, 0, 0), v_vec=(0, dy, 0), nu=Nx, nv=Ny, normal_sign=1)
+    # -Z (bottom face)
+    add_face_grid(start=(-w/2, 0, b/2), u_vec=(dx, 0, 0), v_vec=(0, dy, 0), nu=Nx, nv=Ny, normal_sign=-1)
+
+    # +Y (front face)
+    add_face_grid(start=(-w/2, h, -b/2), u_vec=(dx, 0, 0), v_vec=(0, 0, dz), nu=Nx, nv=Nz, normal_sign=1)
+    # -Y (back face)
+    add_face_grid(start=(-w/2, 0, -b/2), u_vec=(dx, 0, 0), v_vec=(0, 0, dz), nu=Nx, nv=Nz, normal_sign=-1)
+
+    # +X (right face)
+    add_face_grid(start=(-w/2, 0, -b/2), u_vec=(0, dy, 0), v_vec=(0, 0, dz), nu=Ny, nv=Nz, normal_sign=1)
+    # -X (left face)
+    add_face_grid(start=(w/2, 0, -b/2), u_vec=(0, dy, 0), v_vec=(0, 0, dz), nu=Ny, nv=Nz, normal_sign=-1)
+
+    return np.array(vertices), np.array(faces)
+
 
 # subdivides specific faces, and triangulates the non-triangular resultant faces by joining them to the other vertex
 def face_subdivision(Ps_, Es_, faces_, n_subdivisions=1, ret_faces=False):

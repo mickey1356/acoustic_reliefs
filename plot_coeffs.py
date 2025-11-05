@@ -31,17 +31,19 @@ sixth_freqs = [106, 119, 133, 150, 168, 188, 211, 237, 266, 299, 335, 376, 422, 
 # to_plot = ["rect_0.6_e0.02", "ac_cat_0.6_multifreq_sample2", "hres_cat_0.6", "cat_rg5", "cat_rg10"]
 # to_plot = ["bunny18", "bunny48", "ac_bunny_64"]
 # to_plot = ["rect_1.8_1.2", "waves_L_hres", "landscape_L_hres", "mountains_L_hres", "acoustics_L"]
-to_plot = ["rect_0.6", "prd_l", "ptlight_cat", "ptlight_flowers", "ptlight_flowers_abstract", "ptlight_matterhorn2", "ptlight_merlion", "ptlight_trees", "ptlight_windows_bloom"]
-# to_plot = ["cat_0.6"]
+# to_plot = ["rect_0.6", "prd_l", "ptlight_cat", "ptlight_flowers", "ptlight_flowers_abstract", "ptlight_matterhorn2", "ptlight_merlion", "ptlight_trees", "ptlight_windows_bloom"]
+to_plot = ["normal_0_0"] + ["rect_normal_0_0"] + [f"r{i}" for i in range(10)]
+# to_plot = ["normal_0_0", "normal_60_0", "normal_60_120", "normal_60_240", "normal_30_0", "normal_30_60", "normal_30_120", "normal_30_180", "normal_30_240", "normal_30_300", "normal_60_60", "normal_60_180", "normal_60_300"]
+
 
 ref = None
-# ref = "rect_0.6_e0.02"
+# ref = "rect_0.6"
 title = None
 
 lbls = {tp: tp for tp in to_plot}
 
 dat = []
-with open('outputs/coeffs2.csv') as f:
+with open('outputs/coeffs.csv') as f:
     dat = f.readlines()
 dat = [line.split(",") for line in dat]
 coef_dat = {line[0]: np.array(list(map(float, line[1:]))) for line in dat}

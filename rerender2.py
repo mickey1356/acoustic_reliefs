@@ -43,16 +43,21 @@ def main():
     diff_uvs = dm.rect_points_to_uv(diff_Ps, x_min, x_max, z_min, z_max)
 
     # load image
-    tex = H.read_image("t_heights.png", w=124, h=124, format="L")
+    tex = H.read_image("t_heights2.png", w=256, h=256, format="L")
     # squish tex to lie between ht_low and ht_high
-    ht_low = -0.05
-    ht_high = 0.05
+    ht_low = -0.02
+    ht_high = 0.02
     tex = (tex - np.min(tex)) / (np.max(tex) - np.min(tex)) * (ht_high - ht_low) + ht_low
     tex = preprocess_tex(tex, 2)
 
-    diffmesh = dm.DiffMesh(Ps, Es)
-    rendered_imgs = [diffmesh.render(tex, *cam, radius=1) for cam in CAM_POS]
-    H.save_images("t_depthmap.png", rendered_imgs + [tex], auto_grid=True)
+    # diffmesh = dm.DiffMesh(Ps, Es)
+    # rendered_imgs = [diffmesh.render(tex, *cam, radius=1) for cam in CAM_POS]
+    # H.save_images("rafael_render.png", rendered_imgs + [tex], auto_grid=True)
+
+    heights = eval_uv(tex, diff_uvs)
+    Ps[diff_pts_idx, 1] += heights
+    H.save_mesh(f"tmp/flowers_low.obj", Ps, Es)
+
     # H.save_images(f"{out_fname}/checkpoints/renders_{1+it}.png", rendered_imgs + [save_hfield], auto_grid=True)
 
 

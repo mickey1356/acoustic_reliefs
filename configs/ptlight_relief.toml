@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "ptlight_flowers_relief"
+name = "ptlight_flowers_relief_init"
 
 [diffbem]
 cluster_size = 128

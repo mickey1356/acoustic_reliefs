@@ -42,8 +42,8 @@ def normalize_gradients(grad, edge=0):
         return g / norm
 
 def main():
-    folder = "outputs/ac_cat_0.6_multfreq_sample2"
-    name = "cat_0.6"
+    folder = "outputs/mt_90_anim"
+    name = "mountains"
 
     # folder = "outputs/ac_mountains_0.9_multifreq_sample"
     # name = "mountains_0.9"
@@ -144,9 +144,9 @@ def main():
             nPs = Ps.copy()
             nPs[diff_pts_idx, 1] += heights
             H.save_mesh(f"outputs/optim_anims/{name}/{it}.obj", nPs, Es)
-            if it == 2:
-                hfield = hfield_torch.cpu().detach().numpy()
-                np.save(f"outputs/optim_anims/{name}/{it}.npy", hfield)
+            # if it == 2:
+            #     hfield = hfield_torch.cpu().detach().numpy()
+            #     np.save(f"outputs/optim_anims/{name}/{it}.npy", hfield)
 
 
 

@@ -228,7 +228,7 @@ def optim_proc(config):
     # init with constant value
     dim = hfield_res - 2 * edge_border
     init_heights = H.read_image("test-data/reliefs/flowers_heights.png", w=dim, h=dim, format="L")
-    init_heights = (init_heights - np.min(init_heights)) / (np.max(init_heights) - np.min(init_heights)) * 2 * vmax - vmax
+    init_heights = (init_heights - np.min(init_heights)) / (np.max(init_heights) - np.min(init_heights)) * 2 * 0.02 - 0.02
     hfield_torch = torch.from_numpy(init_heights).to(DEVICE)
     init_heights = hfield_torch.clone()
     # hfield_torch = torch.full((hfield_res - 2 * edge_border, hfield_res - 2 * edge_border), fill_value=init_val).to(DEVICE)

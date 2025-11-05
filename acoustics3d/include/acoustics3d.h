@@ -34,6 +34,8 @@ public:
     bem3d::cvec pvals(double frequency);
     bem3d::cvec pvals(double frequency, const bem3d::mat3 &listeners);
 
+    bem3d::cvec surface_vals(double frequency);
+
     bem3d::mat3 get_listeners();
 
     std::pair<bem3d::mat3, bem3d::imat3> get_mesh();

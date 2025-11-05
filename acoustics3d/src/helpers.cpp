@@ -60,6 +60,7 @@ int compute_listener_pts(mat3 &Ls, double lr, double ds) {
     Eigen::ArrayXd elev_vec = Eigen::ArrayXd::Map(elevations.data(), elevations.size());
     Eigen::ArrayXd azim_vec = Eigen::ArrayXd::Map(azimuths.data(), azimuths.size());
     spherical_to_cartesian(lr, elev_vec, azim_vec, Ls);
+
     return static_cast<int>(Ls.rows());
 }
 

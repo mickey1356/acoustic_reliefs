@@ -18,6 +18,19 @@ def read_mesh(fname, face_type="triangle"):
     Es = mesh.cells_dict[face_type]
     return Ps, Es
 
+def read_obj(fname):
+    with open(fname, "r") as f:
+        lines = f.readlines()
+    verts = []
+    faces = []
+    for line in lines:
+        if line.startswith("v "):
+            verts.append(list(map(float, line.split()[1:])))
+        elif line.startswith("f "):
+            face = [int(i.split("/")[0]) - 1 for i in line.split()[1:]]
+            faces.append(face)
+    return verts, faces
+
 def read_image(fname, w=None, h=None, format="L", resample=Image.Resampling.BILINEAR):
     with Image.open(fname) as pimg:
         # img = np.asarray(pimg.convert("RGB")) / 255

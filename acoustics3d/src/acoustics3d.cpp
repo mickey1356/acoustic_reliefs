@@ -19,7 +19,7 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-DiffBEM::DiffBEM(int cluster_size, double radius_factor, const std::vector<double> &freq_bands, int n_freqs, double approx_ACA_tol, double Q_ACA_tol, double solver_tol,  const Eigen::RowVector3d &src_pt, double listener_radius, double listener_ds, bool recompute_matrices) {
+DiffBEM::DiffBEM(int cluster_size, double radius_factor, const std::vector<double> &freq_bands, int n_freqs, double approx_ACA_tol, double Q_ACA_tol, double solver_tol, const Eigen::RowVector3d &src_pt, double listener_radius, double listener_ds, bool recompute_matrices) {
     _cluster_size = cluster_size;
     _radius_factor = radius_factor;
     _freq_bands = freq_bands;
@@ -279,6 +279,41 @@ bem3d::cvec DiffBEM::pvals(double frequency, const bem3d::mat3 &listeners) {
     return y_cmplx;
 }
 
+bem3d::cvec DiffBEM::surface_vals(double frequency) {
+    if (!_mesh_set) {
+        std::cerr << "Error! No mesh set. Set one using set_mesh or precompute." << std::endl;
+        return bem3d::cvec();
+    }
+
+    bem3d::mat3 Cs, Ns;
+    bem3d::compute_intermediates(_Ps, _Es, Cs, Ns);
+
+    double k = freq_to_wavenumber(frequency);
+    bem3d::cvec G_r;
+    compute_G_r(Cs, _src_pt, k, G_r);
+    bem3d::cvec x, y_cmplx;
+
+    if (!silent) {
+        std::cout << "===== Forward pass =====" << std::endl;
+        std::cout << "Computing direct/approx blocks..." << std::endl;
+    }
+
+    HMatrix *hmat = new HMatrix(_Ne, !silent);
+    hmat->compute_direct_and_approx_blocks_cpu(_direct, _approx, k, _Ps, _Es, Cs, Ns, _approx_ACA_tol);
+
+    if (!silent)
+        std::cout << "\nSolving linear system..." << std::endl;
+    Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
+    bicgstab.setTolerance(_solver_tol);
+    bicgstab.compute(*hmat);
+    x = bicgstab.solve(-G_r);
+    if (!silent)
+        std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
+
+    delete hmat;
+    return x;
+}
+
 bem3d::mat3 DiffBEM::get_listeners() {
     return _Ls;
 }
@@ -333,6 +368,7 @@ NB_MODULE(acoustics3d, m) {
         .def("pvals", nb::overload_cast<double>(&DiffBEM::pvals), "frequency"_a)
         .def("pvals", nb::overload_cast<double, const bem3d::mat3 &>(&DiffBEM::pvals), "frequency"_a, "listeners"_a)
         .def("get_listeners", &DiffBEM::get_listeners)
+        .def("surface_vals", &DiffBEM::surface_vals, "frequency"_a)
 
         .def("get_mesh", nb::overload_cast<>(&DiffBEM::get_mesh))
         .def("get_mesh", nb::overload_cast<const bem3d::vec &>(&DiffBEM::get_mesh), "x"_a)

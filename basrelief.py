@@ -54,8 +54,8 @@ def rc_to_linind( r,c ):
 # ---------------------------
 
 # args = parse_args()
-INFILE = "test-data/reliefs/flowers_depthmap.png"
-OUTFILE = "t_heights.png"
+INFILE = "tmp/composite_output.png"
+OUTFILE = "rafael.png"
 WIDTH = HEIGHT = 256
 OFS = 0
 GC_ALPHA = 10
