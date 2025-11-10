@@ -1,0 +1,3 @@
+[submodule "acoustics3d_cpp/extern/eigen"]
+	path = acoustics3d_cpp/extern/eigen
+	url = https://gitlab.com/libeigen/eigen
