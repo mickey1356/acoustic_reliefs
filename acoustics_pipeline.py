@@ -1,7 +1,8 @@
-from build import acoustics3d as ac3d
 import pyoptim.helpers as H
 import pyoptim.mesher as mesher
 import numpy as np
+
+import acoustics3d as ac3d
 
 ALL_FREQ_BANDS = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000]
 ONE_SIXTH_FREQ_BANDS = [106, 119, 133, 150, 168, 188, 211, 237, 266, 299, 335, 376, 422, 473, 530, 600, 670, 750, 840, 940, 1060, 1190, 1330, 1500, 1680, 1880, 2110, 2370, 2660, 2990, 3350, 3760, 4220]

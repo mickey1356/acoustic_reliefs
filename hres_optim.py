@@ -165,7 +165,7 @@ def main(folder):
         tracker_dict[f"{l}_g"] = 0
 
     # set directories
-    out_fname = os.path.join(config["out_folder"], "hres", config["name"])
+    out_fname = os.path.join(config["out_folder"], config["name"], "hres")
     os.makedirs(out_fname, exist_ok=True)
     os.makedirs(os.path.join(out_fname, "checkpoints"), exist_ok=True)
 
@@ -274,30 +274,10 @@ def main(folder):
 
 
 if __name__ == "__main__":
-    fdrs = [
-        # "outputs/ac_cat_0.02_norm",
-        # "outputs/ac_cat_0.6_multfreq_sample2",
-        # "outputs/ac_cat_0.9_multifreq_sample",
-        # "outputs/ac_corgi_0.6_multfreq_sample",
-        # "outputs/ac_corgi_0.9_multfreq_sample",
-        # "outputs/ac_matterhorn_0.6_multfreq_sample2",
-        # "outputs/ac_matterhorn2_0.9_multifreq_sample",
-        # "outputs/ac_merlion_0.6_emap2",
-        # "outputs/ac_trees_0.6",
-        # "outputs/ac_waves_square2_0.9_multifreq_sample",
-        # "outputs/ac_merlion_0.9",
-        # "outputs/ac_mountains_0.9_multifreq_sample",
-        # "outputs/ac_peppers_0.9_multifreq_sample",
-        # "outputs/ac_fuji_0.9_multifreq_sample",
-        # "outputs/ac_trees_0.9",
-        # "outputs/ac_bunny_64",
-        # "outputs/io_trees_0.6_2"
-        # "outputs/flowers_ac2.3_ap1.0",
-        # "outputs/flowers_ac4.7_ap1.0",
-        # "outputs/flowers_ac7.0_ap0.3",
-        "outputs/ptlight_matterhorn_grid",
-    ]
+    if len(sys.argv) == 1:
+        print("Please provide the path to the folder of the initial optimized Acoustic Relief (See README for details).")
+        sys.exit(1)
 
-    for folder in fdrs:
-        print(folder)
-        main(folder)
+    folder = sys.argv[1]
+    print(f"folder: {folder}")
+    main(folder)

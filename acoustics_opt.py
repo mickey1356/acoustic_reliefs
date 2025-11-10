@@ -6,7 +6,7 @@ import tqdm
 import torch
 import torch.optim
 
-import build.acoustics3d as ac3d
+import acoustics3d as ac3d
 
 from pyoptim import losses
 from pyoptim import mesher

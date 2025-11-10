@@ -1,3 +1,0 @@
-[submodule "acoustics3d/extern/eigen"]
-	path = acoustics3d/extern/eigen
-	url = https://gitlab.com/libeigen/eigen

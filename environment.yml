@@ -1,0 +1,27 @@
+name: reliefs
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - python=3.12
+  - ninja
+  - tqdm
+  - matplotlib
+  - numpy
+  - scipy
+  - pytorch-gpu
+  - cuda-toolkit=12.4
+  - pip:
+      - gmsh
+      - meshio
+      - mitsuba==3.5.2
+      - pillow
+      - tomlkit
+      - opencv-contrib-python-headless
+      - ftfy
+      - regex
+      - lpips
+      - git+https://github.com/openai/CLIP.git
+      - nanobind
