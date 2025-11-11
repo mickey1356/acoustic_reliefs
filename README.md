@@ -8,9 +8,9 @@ Code release for *Acoustic Reliefs*; Siggraph Asia; Jeremy Chew, Michal Piovarč
 
 ## Useful Links
 
-Learn more about this project on our [project page]().
+Learn more about this project on our [project page](https://cdl.ethz.ch/publications/acoustic-reliefs/).
 
-Read our paper [here](./submission/paper/Acoustic_Reliefs.pdf).
+Read our paper [here (author version)](./submission/paper/Acoustic_Reliefs.pdf) or [here (publisher version)]().
 
 Get the *Acoustic Reliefs* meshes here:
 - [0.6m](./submission/acoustic_reliefs/0.6/)
@@ -18,7 +18,7 @@ Get the *Acoustic Reliefs* meshes here:
 
 ## Abstract
 
-We present a framework to optimize and generate *Acoustic Reliefs* acoustic diffusers that not only perform well acoustically in scattering sound uniformly in all directions, but are also visually interesting and can approximate user-provided images. To this end, we develop a differentiable acoustics simulator based on the boundary element method, and integrate it with a differentiable renderer coupled with a vision model to jointly optimize for acoustics, appearance, and fabrication constraints at the same time. We generate various examples and fabricate two room-scale reliefs. The result is a validated simulation and optimization scheme for generating acoustic reliefs whose appearances can be guided by a provided image.
+We present a framework to optimize and generate *Acoustic Reliefs*: Acoustic diffusers that not only perform well acoustically in scattering sound uniformly in all directions, but are also visually interesting and can approximate user-provided images. To this end, we develop a differentiable acoustics simulator based on the boundary element method, and integrate it with a differentiable renderer coupled with a vision model to jointly optimize for acoustics, appearance, and fabrication constraints at the same time. We generate various examples and fabricate two room-scale reliefs. The result is a validated simulation and optimization scheme for generating acoustic reliefs whose appearances can be guided by a provided image.
 
 ## Examples
 
@@ -29,6 +29,9 @@ We present a framework to optimize and generate *Acoustic Reliefs* acoustic diff
 
 ### 0.9m Diffusers
 ![90](./submission/images/90.png)
+
+### Office Diffusers
+![office](./submission/images/office.png)
 
 ## Create Your Own
 
@@ -94,3 +97,9 @@ Finally, the third stage runs the acoustics solver to compute the diffusion coef
 
 ### Other Issues
 If you have any issues or questions, please submit an [issue](https://github.com/mickey1356/acoustic_reliefs/issues). I will be happy to help!
+
+### Citation
+
+```
+Not available yet.
+```
