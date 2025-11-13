@@ -12,6 +12,8 @@ Learn more about this project on our [project page](https://cdl.ethz.ch/publicat
 
 Read our paper [here (author version)](./submission/paper/Acoustic_Reliefs.pdf) or [here (publisher version)]().
 
+Watch the supplementary video [here](https://cdl.ethz.ch/wp-content/uploads/2025/11/acoustic_reliefs_supp_video.mov).
+
 Get the *Acoustic Reliefs* meshes here:
 - [0.6m](./submission/acoustic_reliefs/0.6/)
 - [0.9m](./submission/acoustic_reliefs/0.9/)
@@ -32,10 +34,6 @@ We present a framework to optimize and generate *Acoustic Reliefs*: Acoustic dif
 
 ### Office Diffusers
 ![office](./submission/images/office.png)
-
-## Supplementary Video
-
-https://cdl.ethz.ch/wp-content/uploads/2025/11/sigasia25_finalvid.mp4
 
 ## Create Your Own
 
