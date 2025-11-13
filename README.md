@@ -1,6 +1,6 @@
 # Acoustic Reliefs 
 
-Code release for *Acoustic Reliefs*; Siggraph Asia; Jeremy Chew, Michal Piovarči, Kangrui Xue, Doug James, Bernd Bickel
+Code release for *Acoustic Reliefs*; Siggraph Asia; Jeremy Chew, Michal Piovarči, Kangrui Xue, Doug L. James, Bernd Bickel
 
 **Create acoustic diffusers with custom images!**
 
@@ -32,6 +32,10 @@ We present a framework to optimize and generate *Acoustic Reliefs*: Acoustic dif
 
 ### Office Diffusers
 ![office](./submission/images/office.png)
+
+## Supplementary Video
+
+https://cdl.ethz.ch/wp-content/uploads/2025/11/sigasia25_finalvid.mp4
 
 ## Create Your Own
 
