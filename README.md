@@ -10,7 +10,7 @@ Code release for *Acoustic Reliefs*; Siggraph Asia; Jeremy Chew, Michal Piovarč
 
 Learn more about this project on our [project page](https://cdl.ethz.ch/publications/acoustic-reliefs/).
 
-Read our paper [here (author version)](./submission/paper/Acoustic_Reliefs.pdf) or [here (publisher version)]().
+Read our paper [here (author version)](./submission/paper/Acoustic_Reliefs.pdf) or [here (publisher version)](https://dl.acm.org/doi/10.1145/3763287).
 
 Watch the supplementary video [here](https://cdl.ethz.ch/wp-content/uploads/2025/11/acoustic_reliefs_supp_video.mov).
 
@@ -103,5 +103,23 @@ If you have any issues or questions, please submit an [issue](https://github.com
 ### Citation
 
 ```
-Not available yet.
+@article{10.1145/3763287,
+author = {Chew, Jeremy and Piovarci, Michal and Xue, Kangrui and James, Doug and Bickel, Bernd},
+title = {Acoustic Reliefs},
+year = {2025},
+issue_date = {December 2025},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {44},
+number = {6},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/3763287},
+doi = {10.1145/3763287},
+abstract = {We present a framework to optimize and generate Acoustic Reliefs: acoustic diffusers that not only perform well acoustically in scattering sound uniformly in all directions, but are also visually interesting and can approximate user-provided images. To this end, we develop a differentiable acoustics simulator based on the boundary element method, and integrate it with a differentiable renderer coupled with a vision model to jointly optimize for acoustics, appearance, and fabrication constraints at the same time. We generate various examples and fabricate two room-scale reliefs. The result is a validated simulation and optimization scheme for generating acoustic reliefs whose appearances can be guided by a provided image.},
+journal = {ACM Trans. Graph.},
+month = dec,
+articleno = {242},
+numpages = {23},
+keywords = {acoustics, optimization, fabrication, diffuser design, relief design}
+}
 ```
