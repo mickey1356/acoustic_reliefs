@@ -5,6 +5,10 @@
 
 #include "integrate.h"
 
+#ifdef BEM_USE_CUDA
+#include "cuda/adjoint_gpu.h"
+#endif
+
 namespace bem3d {
 int argmax_abs_masked(const cvec &v, const std::unordered_set<int> &used_indices) {
     int idx = 0, max_idx = 0;
@@ -132,4 +136,20 @@ std::pair<cmat, cmat> compute_ACA_listener(int L, int Ne, double k,
 
     return std::make_pair(U_ret, V_ret);
 }
+
+#ifdef BEM_USE_CUDA
+// Device-resident ACA: the entire pivot loop runs on the GPU (residual updates,
+// argmax, scaling, norms, convergence dots); only scalars cross per iteration and
+// the rank-sized U/V factors are copied back once.
+std::pair<cmat, cmat> compute_ACA_listener_gpu(cuda::DeviceState *dev, int L, int Ne, double k,
+                                               double eps, int max_iter, bool verbose) {
+    std::vector<std::complex<double>> hU, hV;
+    int rank = cuda::aca_resident_gpu(dev, L, Ne, k, eps, max_iter, hU, hV);
+
+    // hU: colmajor L x rank; hV: rowmajor rank x Ne. Map into Eigen cmat (colmajor).
+    cmat U = Eigen::Map<cmat>(hU.data(), L, rank);
+    cmat V = Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(hV.data(), rank, Ne);
+    return std::make_pair(U, V);
+}
+#endif
 } // namespace bem3d

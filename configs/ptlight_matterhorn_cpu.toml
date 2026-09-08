@@ -1,5 +1,5 @@
 out_folder = "outputs/"
-name = "ptlight_matterhorn_grid"
+name = "ptlight_matterhorn_cpu"
 
 [diffbem]
 cluster_size = 128

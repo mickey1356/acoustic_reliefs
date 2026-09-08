@@ -13,6 +13,7 @@ src_pt = [0, 100, 0]
 listener_radius = 50
 listener_ds = 5
 recompute_matrices = false
+sample_freq = true
 
 [dimensions]
 esize = 0.02

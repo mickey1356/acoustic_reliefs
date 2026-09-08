@@ -177,8 +177,8 @@ def optim_proc(config):
     w = config["dimensions"]["w"]
     b = config["dimensions"]["b"]
     h = config["dimensions"]["h"]
-    # Ps, Es = mesher.box_mesher(esize, w, b, h)
-    Ps, Es = mesher.generate_base_mesh(w, h, b, 30, 7, 30)
+    Ps, Es = mesher.box_mesher(esize, w, b, h)
+    # Ps, Es = mesher.generate_base_mesh(w, h, b, 30, 7, 30)
 
     # the points we want to optimize are those at the top of the box
     diff_pts_idx = np.where(np.isclose(Ps[:, 1], np.max(Ps[:, 1])))[0]

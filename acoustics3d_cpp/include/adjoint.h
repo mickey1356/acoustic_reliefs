@@ -14,6 +14,10 @@
 
 namespace bem3d {
 
+namespace cuda {
+struct DeviceState; // opaque; used behind a pointer for the GPU derivative path
+}
+
 // provide the geometry, and optionally the direct/approx blocks (if wanting an approximation)
 double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 const mat3 &Ps, const imat3 &Es, const Eigen::RowVector3d &src_pt,
@@ -21,7 +25,8 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 bool forward_only, double freq_band, int n_freqs, bool actual,
                 std::vector<cvec> &xs, std::vector<cvec> &ys, std::vector<cvec> &lmbs, std::vector<cvec> &adj_bs, vec &dcdh,
                 double approx_ACA_tol, double Q_aca_tol, double solver_tol, bool recompute_matrix, bool silent,
-                const std::vector<std::pair<pii, pii>> *direct = 0, const std::vector<std::pair<pii, pii>> *approx = 0);
+                const std::vector<std::pair<pii, pii>> *direct = 0, const std::vector<std::pair<pii, pii>> *approx = 0,
+                bool use_gpu = false, cuda::DeviceState *dev = nullptr);
 
 void compute_der_A(double k, int LL, int HH,
                    const mat3 &Ps, const imat3 &Es, const mat3 &Ls,

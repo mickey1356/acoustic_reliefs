@@ -18,6 +18,11 @@
 #include "helpers.h"
 #include "hmatrix.h"
 #include "integrate.h"
+#include "profiler.h"
+
+#ifdef BEM_USE_CUDA
+#include "cuda/adjoint_gpu.h"
+#endif
 
 namespace bem3d {
 
@@ -27,7 +32,8 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 bool forward_only, double freq_band, int n_freqs, bool actual,
                 std::vector<cvec> &xs, std::vector<cvec> &ys, std::vector<cvec> &lmbs, std::vector<cvec> &adj_bs, vec &dcdh,
                 double approx_ACA_tol, double Q_ACA_tol, double solver_tol, bool recompute_matrix, bool silent,
-                const std::vector<std::pair<pii, pii>> *direct, const std::vector<std::pair<pii, pii>> *approx) {
+                const std::vector<std::pair<pii, pii>> *direct, const std::vector<std::pair<pii, pii>> *approx,
+                bool use_gpu, cuda::DeviceState *dev) {
 
     if (!silent) {
         if (actual) {
@@ -54,6 +60,13 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
 
     std::vector<cmat> save_M_act, save_Q_act;
 
+#ifdef BEM_USE_CUDA
+    // upload per-iteration geometry once; the ACA and der launchers reuse it
+    if (use_gpu && dev) {
+        cuda::device_set_geometry(dev, Ps.data(), Cs.data(), Ns.data());
+    }
+#endif
+
     // forward pass
     if (!silent)
         std::cout << "===== Forward pass =====" << std::endl;
@@ -62,7 +75,10 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
             std::cout << "  ~ " << frequencies[ff] << " Hz (" << ff + 1 << " / " << n_freqs << ") ~  " << std::endl;
         double k = freq_to_wavenumber(frequencies[ff]);
         cvec G_r;
-        compute_G_r(Cs, src_pt, k, G_r);
+        {
+            BEM_SCOPED_TIMER("fwd.compute_G_r");
+            compute_G_r(Cs, src_pt, k, G_r);
+        }
         cvec x, y_cmplx;
 
         if (actual) {
@@ -84,28 +100,71 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
         } else {
             if (!silent)
                 std::cout << "Computing direct/approx blocks..." << std::endl;
-            HMatrix *hmat = new HMatrix(Ne, !silent);
-            hmat->compute_direct_and_approx_blocks_cpu(*direct, *approx, k, Ps, Es, Cs, Ns, approx_ACA_tol);
+            HMatrix *hmat = nullptr; // CPU H-matrix (CPU path only; GPU path assembles on device)
 
-            if (!silent)
-                std::cout << "\nSolving linear system..." << std::endl;
-            Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
-            bicgstab.setTolerance(solver_tol);
-            bicgstab.compute(*hmat);
-            x = bicgstab.solve(-G_r);
-            if (!silent)
-                std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
+#ifdef BEM_USE_CUDA
+            if (use_gpu && dev) {
+                cuda::DeviceHMat *H;
+                {
+                    BEM_SCOPED_TIMER("fwd.gpu_assemble");
+                    H = cuda::device_assemble(dev, k, approx_ACA_tol);
+                }
+                cvec neg_Gr = -G_r;
+                x.resize(Ne);
+                int it;
+                {
+                    BEM_SCOPED_TIMER("fwd.bicgstab_solve");
+                    it = cuda::solve_gpu(dev, H, neg_Gr.data(), x.data(), false, solver_tol, Ne);
+                }
+                profile_metric("fwd.bicgstab_iters", (double)it);
+            } else
+#endif
+            {
+                hmat = new HMatrix(Ne, !silent);
+                {
+                    BEM_SCOPED_TIMER("fwd.hmat_assembly");
+                    hmat->compute_direct_and_approx_blocks_cpu(*direct, *approx, k, Ps, Es, Cs, Ns, approx_ACA_tol);
+                }
+                Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
+                bicgstab.setTolerance(solver_tol);
+                {
+                    BEM_SCOPED_TIMER("fwd.bicgstab_solve");
+                    bicgstab.compute(*hmat);
+                    x = bicgstab.solve(-G_r);
+                }
+                profile_metric("fwd.bicgstab_iters", (double)bicgstab.iterations());
+                profile_metric("fwd.bicgstab_error", bicgstab.error());
+                if (!silent)
+                    std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
+            }
 
             if (!silent)
                 std::cout << "\nComputing Q matrix approx - " << LL << " listener points..." << std::endl;
-            auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
-            y_cmplx = Q_appx.first * (Q_appx.second * x);
+            std::pair<cmat, cmat> Q_appx;
+            {
+                BEM_SCOPED_TIMER("fwd.aca_listener");
+#ifdef BEM_USE_CUDA
+                if (use_gpu && dev) {
+                    Q_appx = compute_ACA_listener_gpu(dev, LL, Ne, k, Q_ACA_tol, Q_ACA_MAX_K, !silent);
+                } else
+#endif
+                {
+                    Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
+                }
+            }
+            {
+                BEM_SCOPED_TIMER("fwd.y_matvec");
+                y_cmplx = Q_appx.first * (Q_appx.second * x);
+            }
 
             if (forward_only || recompute_matrix) {
-                delete hmat;
+                if (hmat)
+                    delete hmat; // GPU path: nothing to free (asm_hmat persists, reassembled each solve)
             } else {
-                save_M.push_back(hmat);
+                // backward needs Q for both paths; GPU reassembles M on device (no save_M)
                 save_Q.push_back(Q_appx);
+                if (hmat)
+                    save_M.push_back(hmat);
             }
         }
 
@@ -124,7 +183,11 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
     Eigen::ArrayXd L = yt.array().square(), u;
 
     // compute u = dc/dyt = dc/dL * dL/dyt (1 x LL)
-    double c = compute_u(LL, HH, L, yt, u);
+    double c;
+    {
+        BEM_SCOPED_TIMER("compute_u");
+        c = compute_u(LL, HH, L, yt, u);
+    }
 
     if (forward_only)
         return c;
@@ -174,14 +237,24 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                 // compute adjoint RHS = adj_b = Q * vf
                 if (!silent)
                     std::cout << "Computing Q matrix approx - " << LL << " listener points..." << std::endl;
-                auto Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
-                adj_b = Q_appx.second.transpose() * (Q_appx.first.transpose() * vf);
+                std::pair<cmat, cmat> Q_appx;
+                {
+                    BEM_SCOPED_TIMER("bwd.aca_listener");
+                    Q_appx = compute_ACA_listener(LL, Ne, k, Ls, Ps, Es, Cs, Ns, Q_ACA_tol, Q_ACA_MAX_K, !silent);
+                }
+                {
+                    BEM_SCOPED_TIMER("bwd.adj_b");
+                    adj_b = Q_appx.second.transpose() * (Q_appx.first.transpose() * vf);
+                }
 
                 // recompute M
                 if (!silent)
                     std::cout << "\nComputing direct/approx blocks..." << std::endl;
                 HMatrix hmat(Ne, !silent);
-                hmat.compute_direct_and_approx_blocks_cpu(*direct, *approx, k, Ps, Es, Cs, Ns, approx_ACA_tol);
+                {
+                    BEM_SCOPED_TIMER("bwd.hmat_assembly");
+                    hmat.compute_direct_and_approx_blocks_cpu(*direct, *approx, k, Ps, Es, Cs, Ns, approx_ACA_tol);
+                }
                 hmat.set_transposed(true);
 
                 // solve adjoint var M lmb = adj_b
@@ -189,43 +262,104 @@ double gradient(int Ne, int HH, const std::vector<std::vector<pii>> &elements,
                     std::cout << "\nSolving adjoint system..." << std::endl;
                 Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
                 bicgstab.setTolerance(solver_tol);
-                bicgstab.compute(hmat);
-                lmb = bicgstab.solve(adj_b);
+                {
+                    BEM_SCOPED_TIMER("bwd.bicgstab_solve");
+                    bicgstab.compute(hmat);
+                    lmb = bicgstab.solve(adj_b);
+                }
+                profile_metric("bwd.bicgstab_iters", (double)bicgstab.iterations());
+                profile_metric("bwd.bicgstab_error", bicgstab.error());
                 if (!silent)
                     std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
             } else {
                 // compute backward pass using saved matrices
-                adj_b = save_Q[ff].second.transpose() * (save_Q[ff].first.transpose() * vf);
+                {
+                    BEM_SCOPED_TIMER("bwd.adj_b");
+                    adj_b = save_Q[ff].second.transpose() * (save_Q[ff].first.transpose() * vf);
+                }
 
-                // transpose saved M
-                save_M[ff]->set_transposed(true);
-
-                // solve adjoint var M lmb = adj_b
                 if (!silent)
                     std::cout << "\nSolving adjoint system..." << std::endl;
-                Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
-                bicgstab.setTolerance(solver_tol);
-                bicgstab.compute(*save_M[ff]);
-                lmb = bicgstab.solve(adj_b);
-                if (!silent)
-                    std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
+#ifdef BEM_USE_CUDA
+                if (use_gpu && dev) {
+                    cuda::DeviceHMat *H;
+                    {
+                        BEM_SCOPED_TIMER("bwd.gpu_assemble");
+                        H = cuda::device_assemble(dev, k, approx_ACA_tol);
+                    }
+                    cvec lmb_out(Ne);
+                    int it;
+                    {
+                        BEM_SCOPED_TIMER("bwd.bicgstab_solve");
+                        // transposed matvec solves M^T lmb = adj_b
+                        it = cuda::solve_gpu(dev, H, adj_b.data(), lmb_out.data(), true, solver_tol, Ne);
+                    }
+                    lmb = lmb_out;
+                    profile_metric("bwd.bicgstab_iters", (double)it);
+                } else
+#endif
+                {
+                    // transpose saved M
+                    save_M[ff]->set_transposed(true);
+                    Eigen::BiCGSTAB<HMatrix, Eigen::IdentityPreconditioner> bicgstab;
+                    bicgstab.setTolerance(solver_tol);
+                    {
+                        BEM_SCOPED_TIMER("bwd.bicgstab_solve");
+                        bicgstab.compute(*save_M[ff]);
+                        lmb = bicgstab.solve(adj_b);
+                    }
+                    profile_metric("bwd.bicgstab_iters", (double)bicgstab.iterations());
+                    profile_metric("bwd.bicgstab_error", bicgstab.error());
+                    if (!silent)
+                        std::cout << "\33[2K\r" << bem3d::mat_mults << " matrix mults, " << bicgstab.iterations() << " iters, " << bicgstab.error() << " error" << std::endl;
 
-                // make sure to delete the HMatrices
-                delete save_M[ff];
-                save_M[ff] = nullptr;
+                    // make sure to delete the HMatrices
+                    delete save_M[ff];
+                    save_M[ff] = nullptr;
+                }
             }
         }
 
         vec der_A = Eigen::VectorXd::Zero(HH), der_B = Eigen::VectorXd::Zero(HH), der_C = Eigen::VectorXd::Zero(HH);
 
         // compute A = vf dQ/dh x = sum_i^LL vf[i] * (sum_j^Ne x[j] * dQij/dh)
-        compute_der_A(k, LL, HH, Ps, Es, Ls, elements, vf, x, der_A, silent);
+        {
+            BEM_SCOPED_TIMER("bwd.der_A");
+#ifdef BEM_USE_CUDA
+            if (use_gpu && dev) {
+                cuda::compute_der_A_gpu(dev, k, Ps.data(), vf.data(), x.data(), der_A.data());
+            } else
+#endif
+            {
+                compute_der_A(k, LL, HH, Ps, Es, Ls, elements, vf, x, der_A, silent);
+            }
+        }
 
         // compute B = lmb dM/dh x = sum_i^Ne lmb[i] * (sum_j^Ne x[j] * dMij/dh)
-        compute_der_B(k, Ne, HH, Ps, Es, elements, lmb, x, der_B, silent);
+        {
+            BEM_SCOPED_TIMER("bwd.der_B");
+#ifdef BEM_USE_CUDA
+            if (use_gpu && dev) {
+                cuda::compute_der_B_gpu(dev, k, Ps.data(), x.data(), lmb.data(), der_B.data());
+            } else
+#endif
+            {
+                compute_der_B(k, Ne, HH, Ps, Es, elements, lmb, x, der_B, silent);
+            }
+        }
 
         // compute C = lmb.T * db/dh
-        compute_der_C(k, HH, Ps, Es, src_pt, elements, lmb, der_C, silent);
+        {
+            BEM_SCOPED_TIMER("bwd.der_C");
+#ifdef BEM_USE_CUDA
+            if (use_gpu && dev) {
+                cuda::compute_der_C_gpu(dev, k, Ps.data(), src_pt.data(), lmb.data(), der_C.data());
+            } else
+#endif
+            {
+                compute_der_C(k, HH, Ps, Es, src_pt, elements, lmb, der_C, silent);
+            }
+        }
 
         // dc/dh = sum_F A - B + C
         dcdh += (der_A - der_B + der_C);

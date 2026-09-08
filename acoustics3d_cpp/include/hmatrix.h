@@ -64,11 +64,23 @@ public:
     std::vector<std::pair<pii, pii>> direct;
     std::vector<std::pair<pii, pii>> approx;
 
+    // number of assembled blocks (for the GPU uploader)
+    int n_direct() const { return static_cast<int>(direct_blocks.size()); }
+    int n_approx() const { return static_cast<int>(approx_blocks.size()); }
+
 private:
     int Ne;
     bool verbose;
     bool _transposed = false;
 };
+
+#ifdef BEM_USE_CUDA
+namespace cuda {
+struct DeviceHMat;
+}
+// Flatten an assembled CPU HMatrix and upload it to the device.
+cuda::DeviceHMat *cuda_upload_hmatrix(const HMatrix &H);
+#endif
 
 } // namespace bem3d
 
